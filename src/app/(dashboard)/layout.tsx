@@ -25,6 +25,7 @@ export default async function DashboardLayout({
         <SiteHeader
           userName={session.user.name}
           userEmail={session.user.email}
+          userImage={session.user.image}
         />
         <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
       </SidebarInset>

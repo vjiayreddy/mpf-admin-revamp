@@ -30,6 +30,10 @@ type MpfJwtPayload = {
   isEmailVerified?: boolean
   role?: string[]
   teams?: unknown
+  image?: string
+  profileImage?: string
+  picture?: string
+  avatar?: string
 }
 
 type MpfLoginResponse = {
@@ -43,6 +47,9 @@ type MpfLoginResponse = {
         _id?: string
         firstName?: string
         lastName?: string
+        images?: {
+          profile?: string | null
+        } | null
       }
     }
   }
@@ -81,6 +88,9 @@ const LOGIN_QUERY = `
         firstName
         lastName
         _id
+        images {
+          profile
+        }
       }
     }
   }
@@ -89,6 +99,7 @@ const LOGIN_QUERY = `
 export type MpfAuthUser = {
   email: string
   name: string
+  image?: string
   firstName: string
   lastName: string
   phone: string
@@ -156,12 +167,20 @@ export async function authenticateWithMpfGraphQL(
     tokenData.firstName ?? login.user?.firstName ?? input.name.split(" ")[0] ?? ""
   const lastName = tokenData.lastName ?? login.user?.lastName ?? ""
   const email = tokenData.email ?? input.source
+  const image =
+    login.user?.images?.profile ||
+    tokenData.image ||
+    tokenData.profileImage ||
+    tokenData.picture ||
+    tokenData.avatar ||
+    undefined
 
   return {
     email,
     name:
       tokenData.fullName ??
       (`${firstName} ${lastName}`.trim() || input.name),
+    ...(image ? { image } : {}),
     firstName,
     lastName,
     phone: tokenData.phone ?? "",
