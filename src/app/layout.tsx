@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { ApolloAppProvider } from "@/lib/apollo/apollo-provider"
 
 import "./globals.css"
 
@@ -42,7 +43,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <TooltipProvider>{children}</TooltipProvider>
+          <ApolloAppProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </ApolloAppProvider>
         </ThemeProvider>
       </body>
     </html>
