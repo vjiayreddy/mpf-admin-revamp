@@ -62,5 +62,17 @@ export const CUSTOMER_TYPE_OPTIONS = [
   { value: "STAR_CLIENT", label: "Star Client" },
 ] as const
 
+export const CUSTOMER_SEGMENT_OPTIONS = [
+  { value: "PREMIUM", label: "Premium" },
+  { value: "SUPER_PREMIUM", label: "Super Premium" },
+  { value: "LUXURY", label: "Luxury" },
+  { value: "SUPER_LUXURY", label: "Super Luxury" },
+] as const
+
+export const YES_NO_OPTIONS = [
+  { value: "YES", label: "Yes" },
+  { value: "NO", label: "No" },
+] as const
+
 export type SearchType = (typeof SEARCH_TYPE_OPTIONS)[number]["value"]
 export type SortByEnum = (typeof SORT_BY_OPTIONS)[number]["value"]

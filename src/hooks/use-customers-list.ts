@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useLazyQuery } from "@apollo/client/react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
@@ -94,6 +94,16 @@ export function useCustomersList() {
   >(GET_USERS_BY_FILTER, {
     fetchPolicy: "network-only",
   })
+
+  /** Local overlays so quick-edit can update one row without refetching the page. */
+  const [rowPatches, setRowPatches] = useState<
+    Record<string, Partial<CustomerListRow>>
+  >({})
+
+  // Drop patches when filters/page change (fresh server fetch owns the list).
+  useEffect(() => {
+    setRowPatches({})
+  }, [paramsKey])
 
   const setParams = useCallback(
     (updates: Record<string, string | null>, resetPage = true) => {
@@ -217,7 +227,16 @@ export function useCustomersList() {
     })
   }, [fetchUsers, page, gqlFilter, session?.user])
 
-  const rows: CustomerListRow[] = data?.getUsersByFilter ?? []
+  const serverRows: CustomerListRow[] = data?.getUsersByFilter ?? []
+
+  const rows: CustomerListRow[] = useMemo(
+    () =>
+      serverRows.map((row) => {
+        const patch = rowPatches[row._id]
+        return patch ? { ...row, ...patch } : row
+      }),
+    [serverRows, rowPatches]
+  )
 
   const searchInputValue =
     searchType === "cusId" ? customerSrNo : searchTerm
@@ -225,6 +244,7 @@ export function useCustomersList() {
   const reloadCustomers = useCallback(() => {
     if (!Number.isInteger(page) || page < 0) return
     if (!session?.user) return
+    setRowPatches({})
     void fetchUsers({
       variables: {
         page: page + 1,
@@ -233,6 +253,16 @@ export function useCustomersList() {
       },
     })
   }, [fetchUsers, page, gqlFilter, session?.user])
+
+  const patchCustomerRow = useCallback(
+    (userId: string, patch: Partial<CustomerListRow>) => {
+      setRowPatches((prev) => ({
+        ...prev,
+        [userId]: { ...prev[userId], ...patch },
+      }))
+    },
+    []
+  )
 
   return {
     rows,
@@ -257,5 +287,6 @@ export function useCustomersList() {
     clearFilter,
     clearAllFilters,
     reloadCustomers,
+    patchCustomerRow,
   }
 }
