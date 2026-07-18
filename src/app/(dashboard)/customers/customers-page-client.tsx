@@ -98,6 +98,7 @@ export function CustomersPageClient() {
     clearFilter,
     clearAllFilters,
     reloadCustomers,
+    patchCustomerRow,
   } = useCustomersList()
 
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
@@ -323,6 +324,7 @@ export function CustomersPageClient() {
         onOpenChange={(next) => {
           if (!next) setQuickViewUserId(null)
         }}
+        onUpdated={patchCustomerRow}
       />
     </div>
   )

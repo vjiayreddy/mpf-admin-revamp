@@ -18,6 +18,8 @@ export const GET_USER = gql`
       userStatus
       customerType
       customerSegment
+      remarks
+      isStyleClubMember
       studioId
       dateOfBirth {
         timestamp
@@ -66,6 +68,8 @@ export type QuickCustomerUser = {
   userStatus?: string | null
   customerType?: string | null
   customerSegment?: string | null
+  remarks?: string | null
+  isStyleClubMember?: boolean | null
   studioId?: string | null
   dateOfBirth?: { timestamp?: string | null } | null
   ccDueDate?: { timestamp?: string | null } | null
