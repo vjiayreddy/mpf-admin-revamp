@@ -100,7 +100,7 @@ export function DataGrid<TData>({
         suppressCellFocus
         enableCellTextSelection
         ensureDomOrder
-        valueCache
+        valueCache={false}
         suppressScrollOnNewData
         domLayout="normal"
       />
