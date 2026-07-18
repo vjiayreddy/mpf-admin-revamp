@@ -1,5 +1,17 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { Suspense } from "react"
+
+import { OnlineOrdersPageClient } from "./online-orders-page-client"
 
 export default function OnlineOrdersPage() {
-  return <PlaceholderPage title="Online Orders" />
+  return (
+    <Suspense
+      fallback={
+        <div className="text-muted-foreground text-sm">
+          Loading online orders…
+        </div>
+      }
+    >
+      <OnlineOrdersPageClient />
+    </Suspense>
+  )
 }
