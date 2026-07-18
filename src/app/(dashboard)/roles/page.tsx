@@ -1,5 +1,15 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { Suspense } from "react"
+
+import { RolesPageClient } from "./roles-page-client"
 
 export default function RolesPage() {
-  return <PlaceholderPage title="Roles" />
+  return (
+    <Suspense
+      fallback={
+        <div className="text-muted-foreground text-sm">Loading roles…</div>
+      }
+    >
+      <RolesPageClient />
+    </Suspense>
+  )
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ChevronRight } from "lucide-react"
@@ -51,10 +52,16 @@ function NavGroup({ item }: { item: NavItem }) {
   const pathname = usePathname()
   const Icon = item.icon
   const childActive = item.children?.some((c) => isActive(pathname, c.href))
+  const [open, setOpen] = useState(Boolean(childActive))
+
+  useEffect(() => {
+    if (childActive) setOpen(true)
+  }, [childActive])
 
   return (
     <Collapsible
-      defaultOpen={childActive}
+      open={open}
+      onOpenChange={setOpen}
       className="group/collapsible"
     >
       <SidebarMenuItem>
