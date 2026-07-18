@@ -128,3 +128,15 @@
     @apply font-sans;
   }
 }
+
+/* Subtle AG Grid emphasis — no heavy badge UI */
+.mpf-data-grid .mpf-cell-overdue {
+  font-weight: 600;
+  color: oklch(0.45 0.14 25);
+}
+.dark .mpf-data-grid .mpf-cell-overdue {
+  color: oklch(0.78 0.12 25);
+}
+.mpf-data-grid .mpf-cell-issue {
+  font-weight: 600;
+}

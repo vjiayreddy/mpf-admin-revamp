@@ -33,6 +33,8 @@ export type DataGridProps<TData> = {
   loading?: boolean
   getRowId?: AgGridReactProps<TData>["getRowId"]
   onRowClicked?: (event: RowClickedEvent<TData>) => void
+  /** Filters the currently loaded rows only (not server search). */
+  quickFilterText?: string
   className?: string
   heightClassName?: string
 }
@@ -48,6 +50,7 @@ export function DataGrid<TData>({
   loading = false,
   getRowId,
   onRowClicked,
+  quickFilterText,
   className,
   heightClassName = "h-[calc(100vh-14rem)]",
 }: DataGridProps<TData>) {
@@ -61,6 +64,12 @@ export function DataGrid<TData>({
       flex: 1,
       minWidth: 110,
       suppressHeaderMenuButton: true,
+      tooltipValueGetter: (params) => {
+        const value = params.value
+        if (value === null || value === undefined || value === "") return null
+        const text = String(value)
+        return text === "—" ? null : text
+      },
     }),
     []
   )
@@ -68,7 +77,7 @@ export function DataGrid<TData>({
   return (
     <div
       className={cn(
-        "bg-card w-full overflow-hidden rounded-lg border",
+        "mpf-data-grid bg-card w-full overflow-hidden rounded-lg border",
         heightClassName,
         className
       )}
@@ -82,6 +91,9 @@ export function DataGrid<TData>({
         loading={loading}
         getRowId={getRowId}
         onRowClicked={onRowClicked}
+        quickFilterText={quickFilterText}
+        tooltipShowDelay={400}
+        tooltipHideDelay={10000}
         animateRows={false}
         rowBuffer={10}
         debounceVerticalScrollbar

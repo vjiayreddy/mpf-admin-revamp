@@ -7,6 +7,8 @@ import {
   ColumnAutoSizeModule,
   CellStyleModule,
   ValueCacheModule,
+  TooltipModule,
+  QuickFilterModule,
   enableDevValidations,
 } from "ag-grid-community"
 
@@ -29,5 +31,7 @@ export function ensureAgGridModules() {
     ColumnAutoSizeModule,
     CellStyleModule,
     ValueCacheModule,
+    TooltipModule,
+    QuickFilterModule,
   ])
 }
