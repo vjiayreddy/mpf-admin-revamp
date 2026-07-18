@@ -26,6 +26,8 @@ const SERVER_SNAPSHOT: NetworkActivitySnapshot = {
   updatedAt: 0,
 }
 
+let notifyScheduled = false
+
 function refreshClientSnapshot() {
   clientSnapshot = {
     inFlightCount,
@@ -34,12 +36,24 @@ function refreshClientSnapshot() {
   }
 }
 
+/**
+ * Update snapshot immediately, but notify React subscribers asynchronously.
+ * Apollo can start requests during render; sync listeners would call setState
+ * on NetworkStatusProvider while another component is rendering.
+ */
 function emit() {
   updatedAt = Date.now()
   refreshClientSnapshot()
-  for (const listener of listeners) {
-    listener()
-  }
+
+  if (notifyScheduled) return
+  notifyScheduled = true
+
+  queueMicrotask(() => {
+    notifyScheduled = false
+    for (const listener of listeners) {
+      listener()
+    }
+  })
 }
 
 export function trackRequestStart() {
