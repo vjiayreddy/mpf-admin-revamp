@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { useMutation } from "@apollo/client/react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { PhoneInput } from "@/components/ui/phone-input"
 import {
   Sheet,
   SheetContent,
@@ -27,6 +28,7 @@ import {
   createCustomerDefaultValues,
   createCustomerSchema,
   resolveCreateCustomerEmail,
+  splitPhoneForApi,
   type CreateCustomerFormValues,
 } from "@/lib/customers/create-customer-schema"
 import { cn } from "@/lib/utils"
@@ -76,6 +78,7 @@ export function CreateCustomerDialog({
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
@@ -102,13 +105,8 @@ export function CreateCustomerDialog({
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null)
-    const phone = values.phone.replace(/\D/g, "")
-    const countryCode = values.countryCode.replace(/\D/g, "")
-    const email = resolveCreateCustomerEmail(
-      values.email,
-      countryCode,
-      phone
-    )
+    const { countryCode, phone } = splitPhoneForApi(values.phone)
+    const email = resolveCreateCustomerEmail(values.email, values.phone)
 
     try {
       const result = await createUser({
@@ -195,34 +193,27 @@ export function CreateCustomerDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-[5.5rem_1fr] gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="create-country">Code</Label>
-              <Input
-                id="create-country"
-                inputMode="numeric"
-                placeholder="91"
-                disabled={busy}
-                aria-invalid={!!errors.countryCode}
-                className={cn(errors.countryCode && "border-destructive")}
-                {...register("countryCode")}
-              />
-              <FieldError message={errors.countryCode?.message} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="create-phone">Mobile</Label>
-              <Input
-                id="create-phone"
-                inputMode="tel"
-                placeholder="Phone number"
-                disabled={busy}
-                autoComplete="tel-national"
-                aria-invalid={!!errors.phone}
-                className={cn(errors.phone && "border-destructive")}
-                {...register("phone")}
-              />
-              <FieldError message={errors.phone?.message} />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="create-phone">Mobile</Label>
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <PhoneInput
+                  id="create-phone"
+                  international
+                  defaultCountry="IN"
+                  placeholder="Phone number"
+                  disabled={busy}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  aria-invalid={!!errors.phone}
+                  className={cn(errors.phone && "[&_input]:border-destructive")}
+                />
+              )}
+            />
+            <FieldError message={errors.phone?.message} />
           </div>
 
           <div className="flex flex-col gap-1.5">
