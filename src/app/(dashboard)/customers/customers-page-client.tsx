@@ -2,14 +2,17 @@
 
 import { useMemo, useState } from "react"
 import type {
+  CellClassParams,
   ColDef,
   ICellRendererParams,
   ValueGetterParams,
 } from "ag-grid-community"
+import { ListFilterIcon } from "lucide-react"
 
 import { CustomersFilterBar } from "@/components/customers/customers-filter-bar"
 import { DataGrid } from "@/components/data-grid/data-grid"
 import { DataGridPagination } from "@/components/data-grid/data-grid-pagination"
+import { Input } from "@/components/ui/input"
 import { useCustomersList } from "@/hooks/use-customers-list"
 import type { CustomerListRow } from "@/lib/apollo/queries/users"
 
@@ -22,6 +25,15 @@ function formatDate(value?: string | null) {
     month: "short",
     year: "numeric",
   })
+}
+
+function isCcOverdue(iso?: string | null) {
+  if (!iso) return false
+  const due = new Date(iso)
+  if (Number.isNaN(due.getTime())) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return due < today
 }
 
 function CustomerNameCell({ data }: ICellRendererParams<CustomerListRow>) {
@@ -70,24 +82,38 @@ export function CustomersPageClient() {
   } = useCustomersList()
 
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
+  const [pageQuickFilter, setPageQuickFilter] = useState("")
 
-  const columnDefs = useMemo<ColDef<CustomerListRow>[]>(
-    () => [
+  const columnDefs = useMemo(
+    () =>
+      [
       {
         field: "fullName",
         headerName: "Customer",
         minWidth: 180,
+        pinned: "left",
+        lockPinned: true,
         cellRenderer: CustomerNameCell,
         valueGetter: (p: ValueGetterParams<CustomerListRow>) =>
           `${p.data?.firstName ?? ""} ${p.data?.lastName ?? ""}`.trim() ||
           p.data?.fullName ||
           "",
+        tooltipValueGetter: (p) => {
+          const name =
+            `${p.data?.firstName ?? ""} ${p.data?.lastName ?? ""}`.trim() ||
+            p.data?.fullName ||
+            ""
+          if (!name && !p.data?.email) return null
+          return p.data?.email ? `${name}\n${p.data.email}` : name
+        },
       },
       {
         field: "customerSrNo",
         headerName: "Cus. No",
         minWidth: 90,
         maxWidth: 110,
+        pinned: "left",
+        lockPinned: true,
       },
       {
         colId: "registeredDate",
@@ -115,12 +141,27 @@ export function CustomersPageClient() {
         headerName: "CC Due",
         minWidth: 120,
         valueGetter: (p) => formatDate(p.data?.ccDueDate?.timestamp),
+        cellClassRules: {
+          "mpf-cell-overdue": (params: CellClassParams<CustomerListRow>) =>
+            isCcOverdue(params.data?.ccDueDate?.timestamp),
+        },
+        tooltipValueGetter: (p) => {
+          const label = formatDate(p.data?.ccDueDate?.timestamp)
+          if (label === "—") return null
+          return isCcOverdue(p.data?.ccDueDate?.timestamp)
+            ? `${label} (overdue)`
+            : label
+        },
       },
       {
         field: "userStatus",
         headerName: "Status",
         minWidth: 120,
         cellRenderer: StatusCell,
+        cellClassRules: {
+          "mpf-cell-issue": (params: CellClassParams<CustomerListRow>) =>
+            params.value === "ISSUE",
+        },
       },
       {
         colId: "studios",
@@ -159,14 +200,14 @@ export function CustomersPageClient() {
         minWidth: 120,
         valueGetter: (p) => formatDate(p.data?.lastUpdatedAt?.timestamp),
       },
-    ],
+    ] as ColDef<CustomerListRow>[],
     []
   )
 
   const hasChips = activeFilters.length > 0
   const gridHeight = hasChips
-    ? "h-[calc(100vh-22rem)]"
-    : "h-[calc(100vh-18rem)]"
+    ? "h-[calc(100vh-24rem)]"
+    : "h-[calc(100vh-20rem)]"
 
   return (
     <div className="flex flex-col gap-4">
@@ -206,11 +247,26 @@ export function CustomersPageClient() {
       ) : null}
 
       <div className="overflow-hidden rounded-lg border">
+        <div className="bg-muted/30 flex items-center gap-2 border-b px-3 py-2">
+          <ListFilterIcon className="text-muted-foreground size-4 shrink-0" />
+          <Input
+            value={pageQuickFilter}
+            onChange={(e) => setPageQuickFilter(e.target.value)}
+            placeholder="Filter this page…"
+            className="bg-background h-8 max-w-sm"
+            aria-label="Filter loaded rows on this page"
+            disabled={loading}
+          />
+          <span className="text-muted-foreground hidden text-xs sm:inline">
+            Narrows the current page only — not a server search
+          </span>
+        </div>
         <DataGrid
           rowData={rows}
           columnDefs={columnDefs}
           loading={loading}
           getRowId={(params) => params.data._id}
+          quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
           className="rounded-none border-0"
         />
