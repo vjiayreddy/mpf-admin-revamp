@@ -1,5 +1,15 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { Suspense } from "react"
+
+import { AnalyticsPageClient } from "./analytics-page-client"
 
 export default function AnalyticsPage() {
-  return <PlaceholderPage title="Analytics" />
+  return (
+    <Suspense
+      fallback={
+        <div className="text-muted-foreground text-sm">Loading analytics…</div>
+      }
+    >
+      <AnalyticsPageClient />
+    </Suspense>
+  )
 }
