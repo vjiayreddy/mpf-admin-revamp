@@ -191,10 +191,25 @@ function pushDateRangeChip(
  * One chip per logical filter (date ranges share a chip).
  */
 export function listActiveCustomerFilters(
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  options?: {
+    studioNameById?: Map<string, string>
+  }
 ): ActiveCustomerFilter[] {
   const p = CUSTOMER_FILTER_PARAMS
   const chips: ActiveCustomerFilter[] = []
+  const studioNameById = options?.studioNameById
+
+  const resolveStudioNames = (csv: string) => {
+    const ids = csv
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+    if (ids.length === 0) return csv
+    const names = ids.map((id) => studioNameById?.get(id) ?? id)
+    if (names.length <= 2) return names.join(", ")
+    return `${names.slice(0, 2).join(", ")} +${names.length - 2}`
+  }
 
   const searchTerm = searchParams.get(p.searchTerm)
   if (searchTerm) {
@@ -279,7 +294,7 @@ export function listActiveCustomerFilters(
     chips.push({
       id: "studioIds",
       label: "Primary studios",
-      displayValue: studioIds,
+      displayValue: resolveStudioNames(studioIds),
       clear: { [p.studioIds]: null },
     })
   }
@@ -289,7 +304,7 @@ export function listActiveCustomerFilters(
     chips.push({
       id: "secondaryStudioIds",
       label: "Secondary studios",
-      displayValue: secondaryStudioIds,
+      displayValue: resolveStudioNames(secondaryStudioIds),
       clear: { [p.secondaryStudioIds]: null },
     })
   }

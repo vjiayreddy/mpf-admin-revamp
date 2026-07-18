@@ -7,6 +7,7 @@ import {
   FilterFieldset,
   FilterSelect,
 } from "@/components/customers/filter-fields"
+import { StudioMultiSelect } from "@/components/customers/studio-multi-select"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -21,6 +22,7 @@ import {
   CUSTOMER_TYPE_OPTIONS,
   USER_STATUS_OPTIONS,
 } from "@/config/customer-filters"
+import { useAllStudios } from "@/hooks/use-all-studios"
 import {
   dateInputToIso,
   isoToDateInput,
@@ -36,8 +38,16 @@ type DraftState = {
   customerType: string
   userStatus: string
   countryCode: string
-  studioIds: string
-  secondaryStudioIds: string
+  studioIds: string[]
+  secondaryStudioIds: string[]
+}
+
+function splitCsvIds(value: string | null): string[] {
+  if (!value) return []
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
 }
 
 function draftFromParams(searchParams: URLSearchParams): DraftState {
@@ -54,8 +64,8 @@ function draftFromParams(searchParams: URLSearchParams): DraftState {
     customerType: searchParams.get(p.customerType) ?? "",
     userStatus: searchParams.get(p.userStatus) ?? "",
     countryCode: searchParams.get(p.countryCode) ?? "",
-    studioIds: searchParams.get(p.studioIds) ?? "",
-    secondaryStudioIds: searchParams.get(p.secondaryStudioIds) ?? "",
+    studioIds: splitCsvIds(searchParams.get(p.studioIds)),
+    secondaryStudioIds: splitCsvIds(searchParams.get(p.secondaryStudioIds)),
   }
 }
 
@@ -74,6 +84,7 @@ export function CustomersMoreFilters({
   onApply,
   onClear,
 }: CustomersMoreFiltersProps) {
+  const { studios, loading: studiosLoading } = useAllStudios()
   const [draft, setDraft] = useState<DraftState>(() =>
     draftFromParams(searchParams)
   )
@@ -102,8 +113,12 @@ export function CustomersMoreFilters({
       [p.customerType]: draft.customerType || null,
       [p.userStatus]: draft.userStatus || null,
       [p.countryCode]: draft.countryCode.trim() || null,
-      [p.studioIds]: draft.studioIds.trim() || null,
-      [p.secondaryStudioIds]: draft.secondaryStudioIds.trim() || null,
+      [p.studioIds]:
+        draft.studioIds.length > 0 ? draft.studioIds.join(",") : null,
+      [p.secondaryStudioIds]:
+        draft.secondaryStudioIds.length > 0
+          ? draft.secondaryStudioIds.join(",")
+          : null,
     })
     onOpenChange(false)
   }
@@ -203,30 +218,20 @@ export function CustomersMoreFilters({
                 className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-muted-foreground text-xs">
-                Primary studio IDs
-              </label>
-              <input
-                type="text"
-                placeholder="Comma-separated IDs"
-                value={draft.studioIds}
-                onChange={(e) => setField("studioIds", e.target.value)}
-                className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-muted-foreground text-xs">
-                Secondary studio IDs
-              </label>
-              <input
-                type="text"
-                placeholder="Comma-separated IDs"
-                value={draft.secondaryStudioIds}
-                onChange={(e) => setField("secondaryStudioIds", e.target.value)}
-                className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
-            </div>
+            <StudioMultiSelect
+              label="Primary studio"
+              studios={studios}
+              selectedIds={draft.studioIds}
+              onChange={(ids) => setField("studioIds", ids)}
+              loading={studiosLoading}
+            />
+            <StudioMultiSelect
+              label="Secondary studios"
+              studios={studios}
+              selectedIds={draft.secondaryStudioIds}
+              onChange={(ids) => setField("secondaryStudioIds", ids)}
+              loading={studiosLoading}
+            />
           </FilterFieldset>
         </div>
 
