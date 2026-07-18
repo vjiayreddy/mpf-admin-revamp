@@ -1,10 +1,11 @@
 "use client"
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 
+import { authClient } from "@/lib/auth-client"
+import { LOGOUT_STYLIST } from "@/lib/graphql/queries/user"
 import { getPageTitle } from "@/config/navigation"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -18,11 +19,65 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { usePathname } from "next/navigation"
 
-export function SiteHeader() {
+type SiteHeaderProps = {
+  userName?: string | null
+  userEmail?: string | null
+}
+
+export function SiteHeader({ userName, userEmail }: SiteHeaderProps) {
   const pathname = usePathname()
   const title = getPageTitle(pathname)
   const { resolvedTheme, setTheme } = useTheme()
+  const router = useRouter()
+
+  const initials =
+    userName
+      ?.split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("") || "MP"
+
+  async function handleSignOut() {
+    try {
+      const session = await authClient.getSession()
+      const sessionId =
+        session.data?.user?.activeStylistSessionId ||
+        (typeof window !== "undefined"
+          ? window.localStorage.getItem("active_session_id")
+          : null)
+      const token = session.data?.user?.mpfAccessToken
+      const apiUrl = process.env.NEXT_PUBLIC_MPF_API_URL
+
+      if (sessionId && token && apiUrl) {
+        await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            query: LOGOUT_STYLIST,
+            variables: { sessionId },
+          }),
+        }).catch(() => undefined)
+      }
+
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("active_session_id")
+      }
+
+      await authClient.signOut()
+      router.push("/login")
+      router.refresh()
+    } catch {
+      await authClient.signOut()
+      router.push("/login")
+      router.refresh()
+    }
+  }
 
   return (
     <header className="bg-background sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b px-4">
@@ -49,18 +104,20 @@ export function SiteHeader() {
             }
           >
             <Avatar className="size-8">
-              <AvatarFallback className="text-xs">MP</AvatarFallback>
+              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Admin User</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium">{userName ?? "Admin"}</span>
+                <span className="text-muted-foreground text-xs">
+                  {userEmail ?? ""}
+                </span>
+              </div>
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem render={<Link href="/login" />}>
-              Sign out
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSignOut}>Sign out</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

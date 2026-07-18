@@ -1,3 +1,7 @@
+import { headers } from "next/headers"
+
+import { auth } from "@/lib/auth"
+import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -5,13 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 
 const kpis = [
   {
     title: "Open orders",
     value: "—",
-    description: "Live counts connect in Phase 2",
+    description: "Live counts connect with module migration",
   },
   {
     title: "Active leads",
@@ -30,16 +33,21 @@ const kpis = [
   },
 ]
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-semibold tracking-tight">Dashboard</h2>
-          <Badge variant="secondary">Scaffold</Badge>
+          <Badge variant="secondary">Auth live</Badge>
         </div>
         <p className="text-muted-foreground text-sm">
-          Premium admin shell for My Perfect Fit. Modules migrate next.
+          Signed in as {session?.user?.email ?? "unknown"}
+          {session?.user?.role ? ` · ${session.user.role}` : ""}
         </p>
       </div>
 
@@ -61,15 +69,21 @@ export default function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Getting started</CardTitle>
+          <CardTitle>Session bridge</CardTitle>
           <CardDescription>
-            This project is the new Next.js + Tailwind + shadcn foundation.
-            Legacy GraphQL and auth land in the next phase.
+            Better Auth holds the cookie session. MPF GraphQL issued the bearer
+            token used for API calls.
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-muted-foreground text-sm">
-          Use the sidebar to open placeholder module routes that mirror the
-          current admin navigation.
+        <CardContent className="text-muted-foreground space-y-1 text-sm">
+          <p>
+            Stylist session:{" "}
+            {session?.user?.activeStylistSessionId || "—"}
+          </p>
+          <p>
+            Access token:{" "}
+            {session?.user?.mpfAccessToken ? "present" : "missing"}
+          </p>
         </CardContent>
       </Card>
     </div>

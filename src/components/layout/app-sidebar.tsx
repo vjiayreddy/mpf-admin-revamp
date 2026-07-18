@@ -1,8 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Scissors } from "lucide-react"
 
+import { authClient } from "@/lib/auth-client"
 import { NavMain } from "@/components/layout/nav-main"
 import {
   Sidebar,
@@ -16,6 +18,17 @@ import {
 } from "@/components/ui/sidebar"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const router = useRouter()
+
+  async function handleSignOut() {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("active_session_id")
+    }
+    await authClient.signOut()
+    router.push("/login")
+    router.refresh()
+  }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -43,7 +56,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="sm" render={<Link href="/login" />}>
+            <SidebarMenuButton size="sm" onClick={handleSignOut}>
               Sign out
             </SidebarMenuButton>
           </SidebarMenuItem>
