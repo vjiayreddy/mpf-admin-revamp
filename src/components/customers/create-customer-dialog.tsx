@@ -1,7 +1,9 @@
 "use client"
 
-import { useMemo, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useMutation } from "@apollo/client/react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +23,13 @@ import {
   type CreateUserForCifData,
   type CreateUserForCifVars,
 } from "@/lib/apollo/queries/create-user"
+import {
+  createCustomerDefaultValues,
+  createCustomerSchema,
+  resolveCreateCustomerEmail,
+  type CreateCustomerFormValues,
+} from "@/lib/customers/create-customer-schema"
+import { cn } from "@/lib/utils"
 
 function stylistIdFromTeamsJson(teamsJson: string | null | undefined): string {
   if (!teamsJson) return CREATE_CUSTOMER_DEFAULTS.fallbackStylistId
@@ -40,20 +49,13 @@ type CreateCustomerDialogProps = {
   onCreated?: (userId: string) => void
 }
 
-type FormState = {
-  firstName: string
-  lastName: string
-  countryCode: string
-  phone: string
-  email: string
-}
-
-const emptyForm: FormState = {
-  firstName: "",
-  lastName: "",
-  countryCode: "91",
-  phone: "",
-  email: "",
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null
+  return (
+    <p className="text-destructive text-xs" role="alert">
+      {message}
+    </p>
+  )
 }
 
 export function CreateCustomerDialog({
@@ -62,73 +64,59 @@ export function CreateCustomerDialog({
   onCreated,
 }: CreateCustomerDialogProps) {
   const { data: session } = authClient.useSession()
-  const [form, setForm] = useState<FormState>(emptyForm)
-  const [fieldError, setFieldError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const stylistId = useMemo(
     () => stylistIdFromTeamsJson(session?.user?.teamsJson),
     [session?.user?.teamsJson]
   )
 
-  const [createUser, { loading, error, reset }] = useMutation<
-    CreateUserForCifData,
-    CreateUserForCifVars
-  >(CREATE_USER_FOR_CIF)
+  const [createUser, { loading, error: mutationError, reset: resetMutation }] =
+    useMutation<CreateUserForCifData, CreateUserForCifVars>(CREATE_USER_FOR_CIF)
 
-  const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }))
-  }
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateCustomerFormValues>({
+    resolver: zodResolver(createCustomerSchema),
+    mode: "onChange",
+    defaultValues: createCustomerDefaultValues,
+  })
+
+  useEffect(() => {
+    if (open) {
+      reset(createCustomerDefaultValues)
+      setSubmitError(null)
+      resetMutation()
+    }
+  }, [open, reset, resetMutation])
 
   const handleClose = () => {
-    setForm(emptyForm)
-    setFieldError(null)
-    reset()
+    reset(createCustomerDefaultValues)
+    setSubmitError(null)
+    resetMutation()
     onOpenChange(false)
   }
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault()
-    setFieldError(null)
-
-    const firstName = form.firstName.trim()
-    const lastName = form.lastName.trim()
-    const countryCode = form.countryCode.replace(/\D/g, "")
-    const phone = form.phone.replace(/\D/g, "")
-    const emailInput = form.email.trim()
-
-    if (!firstName) {
-      setFieldError("First name is required.")
-      return
-    }
-    if (!lastName) {
-      setFieldError("Last name is required.")
-      return
-    }
-    if (!countryCode) {
-      setFieldError("Country code is required.")
-      return
-    }
-    if (phone.length < 8) {
-      setFieldError("Enter a valid phone number.")
-      return
-    }
-
-    const email =
-      emailInput ||
-      `+${countryCode}${phone}@${CREATE_CUSTOMER_DEFAULTS.emailDomain}`
-
-    if (emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
-      setFieldError("Enter a valid email address.")
-      return
-    }
+  const onSubmit = handleSubmit(async (values) => {
+    setSubmitError(null)
+    const phone = values.phone.replace(/\D/g, "")
+    const countryCode = values.countryCode.replace(/\D/g, "")
+    const email = resolveCreateCustomerEmail(
+      values.email,
+      countryCode,
+      phone
+    )
 
     try {
       const result = await createUser({
         variables: {
           userData: {
-            firstName,
-            lastName,
-            fullName: `${firstName} ${lastName}`.trim(),
+            firstName: values.firstName,
+            lastName: values.lastName,
+            fullName: `${values.firstName} ${values.lastName}`.trim(),
             phone,
             countryCode,
             email,
@@ -143,22 +131,19 @@ export function CreateCustomerDialog({
 
       const userId = result.data?.createUserForCIF?.userId
       if (!userId) {
-        setFieldError("User was created but no user id was returned.")
+        setSubmitError("User was created but no user id was returned.")
         return
       }
 
       onCreated?.(userId)
       handleClose()
     } catch {
-      // Apollo surfaces via `error`; keep a local fallback message too
-      setFieldError("Failed to create customer. Please try again.")
+      setSubmitError("Failed to create customer. Please try again.")
     }
-  }
+  })
 
-  const apolloMessage =
-    error?.message && error.message !== "Failed to create customer. Please try again."
-      ? error.message
-      : null
+  const busy = loading || isSubmitting
+  const apolloMessage = mutationError?.message ?? null
 
   return (
     <Sheet
@@ -180,29 +165,33 @@ export function CreateCustomerDialog({
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
+        <form onSubmit={onSubmit} className="flex flex-col gap-4 p-4" noValidate>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="create-first-name">First name</Label>
               <Input
                 id="create-first-name"
-                value={form.firstName}
-                onChange={(e) => setField("firstName", e.target.value)}
                 placeholder="First name"
-                disabled={loading}
+                disabled={busy}
                 autoComplete="given-name"
+                aria-invalid={!!errors.firstName}
+                className={cn(errors.firstName && "border-destructive")}
+                {...register("firstName")}
               />
+              <FieldError message={errors.firstName?.message} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="create-last-name">Last name</Label>
               <Input
                 id="create-last-name"
-                value={form.lastName}
-                onChange={(e) => setField("lastName", e.target.value)}
                 placeholder="Last name"
-                disabled={loading}
+                disabled={busy}
                 autoComplete="family-name"
+                aria-invalid={!!errors.lastName}
+                className={cn(errors.lastName && "border-destructive")}
+                {...register("lastName")}
               />
+              <FieldError message={errors.lastName?.message} />
             </div>
           </div>
 
@@ -212,23 +201,27 @@ export function CreateCustomerDialog({
               <Input
                 id="create-country"
                 inputMode="numeric"
-                value={form.countryCode}
-                onChange={(e) => setField("countryCode", e.target.value)}
                 placeholder="91"
-                disabled={loading}
+                disabled={busy}
+                aria-invalid={!!errors.countryCode}
+                className={cn(errors.countryCode && "border-destructive")}
+                {...register("countryCode")}
               />
+              <FieldError message={errors.countryCode?.message} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="create-phone">Mobile</Label>
               <Input
                 id="create-phone"
                 inputMode="tel"
-                value={form.phone}
-                onChange={(e) => setField("phone", e.target.value)}
                 placeholder="Phone number"
-                disabled={loading}
+                disabled={busy}
                 autoComplete="tel-national"
+                aria-invalid={!!errors.phone}
+                className={cn(errors.phone && "border-destructive")}
+                {...register("phone")}
               />
+              <FieldError message={errors.phone?.message} />
             </div>
           </div>
 
@@ -242,29 +235,31 @@ export function CreateCustomerDialog({
             <Input
               id="create-email"
               type="email"
-              value={form.email}
-              onChange={(e) => setField("email", e.target.value)}
               placeholder="Leave blank to auto-generate"
-              disabled={loading}
+              disabled={busy}
               autoComplete="email"
+              aria-invalid={!!errors.email}
+              className={cn(errors.email && "border-destructive")}
+              {...register("email")}
             />
+            <FieldError message={errors.email?.message} />
           </div>
 
-          {fieldError || apolloMessage ? (
+          {submitError || apolloMessage ? (
             <p className="text-destructive text-sm" role="alert">
-              {fieldError || apolloMessage}
+              {submitError || apolloMessage}
             </p>
           ) : null}
 
           <SheetFooter className="border-t px-0 pt-4 sm:flex-row">
-            <Button type="submit" className="flex-1" disabled={loading}>
-              {loading ? "Creating…" : "Create customer"}
+            <Button type="submit" className="flex-1" disabled={busy}>
+              {busy ? "Creating…" : "Create customer"}
             </Button>
             <Button
               type="button"
               variant="outline"
               className="flex-1"
-              disabled={loading}
+              disabled={busy}
               onClick={handleClose}
             >
               Cancel
