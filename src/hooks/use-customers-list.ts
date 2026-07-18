@@ -16,6 +16,7 @@ import {
   getClearAllCustomerFilterUpdates,
   listActiveCustomerFilters,
 } from "@/lib/customers/build-users-filter"
+import { useAllStudios } from "@/hooks/use-all-studios"
 import {
   CUSTOMERS_PAGE_LIMIT,
   GET_USERS_BY_FILTER,
@@ -63,6 +64,8 @@ export function useCustomersList() {
     [session?.user?.teamsJson]
   )
 
+  const { studioNameById } = useAllStudios()
+
   const gqlFilter = useMemo(
     () =>
       buildUsersFilterFromSearchParams(
@@ -73,8 +76,11 @@ export function useCustomersList() {
   )
 
   const activeFilters = useMemo(
-    () => listActiveCustomerFilters(new URLSearchParams(paramsKey)),
-    [paramsKey]
+    () =>
+      listActiveCustomerFilters(new URLSearchParams(paramsKey), {
+        studioNameById,
+      }),
+    [paramsKey, studioNameById]
   )
 
   const advancedFilterCount = useMemo(
