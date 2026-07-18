@@ -1,13 +1,15 @@
 "use client"
 
-import { useMemo, useState, useEffect, type FormEvent, type KeyboardEvent } from "react"
-import type { ColDef, ICellRendererParams, ValueGetterParams } from "ag-grid-community"
-import { SearchIcon } from "lucide-react"
+import { useMemo, useState } from "react"
+import type {
+  ColDef,
+  ICellRendererParams,
+  ValueGetterParams,
+} from "ag-grid-community"
 
+import { CustomersFilterBar } from "@/components/customers/customers-filter-bar"
 import { DataGrid } from "@/components/data-grid/data-grid"
 import { DataGridPagination } from "@/components/data-grid/data-grid-pagination"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { useCustomersList } from "@/hooks/use-customers-list"
 import type { CustomerListRow } from "@/lib/apollo/queries/users"
 
@@ -49,16 +51,22 @@ export function CustomersPageClient() {
     error,
     page,
     pageSize,
-    searchTerm,
+    searchType,
+    searchInputValue,
+    isClient,
+    sortByEnum,
+    activeFilterCount,
+    searchParams,
     setPage,
-    setSearchTerm,
+    setSearchType,
+    setIsClient,
+    setSortByEnum,
+    setSearchQuery,
+    applyMoreFilters,
+    clearMoreFilters,
   } = useCustomersList()
 
-  const [draftSearch, setDraftSearch] = useState(searchTerm)
-
-  useEffect(() => {
-    setDraftSearch(searchTerm)
-  }, [searchTerm])
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
 
   const columnDefs = useMemo<ColDef<CustomerListRow>[]>(
     () => [
@@ -152,46 +160,32 @@ export function CustomersPageClient() {
     []
   )
 
-  const onSearchSubmit = (event: FormEvent) => {
-    event.preventDefault()
-    setSearchTerm(draftSearch)
-  }
-
-  const onSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault()
-      setSearchTerm(draftSearch)
-    }
-  }
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
         <p className="text-muted-foreground text-sm">
-          Customer directory — search and paginate against the live MPF API.
+          Customer directory — filters stay in the URL for shareable views.
         </p>
       </div>
 
-      <form
-        onSubmit={onSearchSubmit}
-        className="flex flex-col gap-2 sm:flex-row sm:items-center"
-      >
-        <div className="relative min-w-0 flex-1 sm:max-w-md">
-          <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-          <Input
-            value={draftSearch}
-            onChange={(e) => setDraftSearch(e.target.value)}
-            onKeyDown={onSearchKeyDown}
-            placeholder="Search customers…"
-            className="pl-8"
-            aria-label="Search customers"
-          />
-        </div>
-        <Button type="submit" variant="secondary" size="sm">
-          Search
-        </Button>
-      </form>
+      <CustomersFilterBar
+        searchType={searchType}
+        searchInputValue={searchInputValue}
+        isClient={isClient}
+        sortByEnum={sortByEnum}
+        activeFilterCount={activeFilterCount}
+        loading={loading}
+        onSearchTypeChange={setSearchType}
+        onIsClientChange={setIsClient}
+        onSortByChange={setSortByEnum}
+        onSearchSubmit={setSearchQuery}
+        moreFiltersOpen={moreFiltersOpen}
+        onMoreFiltersOpenChange={setMoreFiltersOpen}
+        onApplyMoreFilters={applyMoreFilters}
+        onClearMoreFilters={clearMoreFilters}
+        searchParams={searchParams}
+      />
 
       {error ? (
         <p className="text-destructive text-sm" role="alert">
@@ -205,7 +199,7 @@ export function CustomersPageClient() {
           columnDefs={columnDefs}
           loading={loading}
           getRowId={(params) => params.data._id}
-          heightClassName="h-[calc(100vh-16rem)]"
+          heightClassName="h-[calc(100vh-20rem)]"
           className="rounded-none border-0"
         />
         <DataGridPagination

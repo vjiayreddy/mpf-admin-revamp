@@ -4,7 +4,16 @@ import { useCallback, useEffect, useMemo } from "react"
 import { useLazyQuery } from "@apollo/client/react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
+import {
+  CUSTOMER_FILTER_PARAMS,
+  MORE_FILTER_KEYS,
+  type SearchType,
+} from "@/config/customer-filters"
 import { authClient } from "@/lib/auth-client"
+import {
+  buildUsersFilterFromSearchParams,
+  countActiveCustomerFilters,
+} from "@/lib/customers/build-users-filter"
 import {
   CUSTOMERS_PAGE_LIMIT,
   GET_USERS_BY_FILTER,
@@ -32,13 +41,38 @@ export function useCustomersList() {
   const searchParams = useSearchParams()
   const { data: session } = authClient.useSession()
 
-  const pageParam = searchParams.get("page")
-  const page = pageParam !== null && pageParam !== "" ? Number(pageParam) : NaN
-  const searchTerm = searchParams.get("searchTerm") ?? ""
+  // Stable string key so we only rebuild when query actually changes
+  const paramsKey = searchParams.toString()
 
-  const roleFilter = useMemo(
+  const pageParam = searchParams.get(CUSTOMER_FILTER_PARAMS.page)
+  const page = pageParam !== null && pageParam !== "" ? Number(pageParam) : NaN
+  const searchType = (searchParams.get(CUSTOMER_FILTER_PARAMS.searchType) ||
+    "default") as SearchType
+  const searchTerm = searchParams.get(CUSTOMER_FILTER_PARAMS.searchTerm) ?? ""
+  const customerSrNo =
+    searchParams.get(CUSTOMER_FILTER_PARAMS.customerSrNo) ?? ""
+  const isClient =
+    (searchParams.get(CUSTOMER_FILTER_PARAMS.isClient) ?? "true") === "true"
+  const sortByEnum =
+    searchParams.get(CUSTOMER_FILTER_PARAMS.sortByEnum) || "REGISTERED_DATE"
+
+  const sessionRoleFilter = useMemo(
     () => parseTeamsRoleFilter(session?.user?.teamsJson),
     [session?.user?.teamsJson]
+  )
+
+  const gqlFilter = useMemo(
+    () =>
+      buildUsersFilterFromSearchParams(
+        new URLSearchParams(paramsKey),
+        sessionRoleFilter
+      ),
+    [paramsKey, sessionRoleFilter]
+  )
+
+  const activeFilterCount = useMemo(
+    () => countActiveCustomerFilters(new URLSearchParams(paramsKey)),
+    [paramsKey]
   )
 
   const [fetchUsers, { data, loading, error }] = useLazyQuery<
@@ -49,7 +83,7 @@ export function useCustomersList() {
   })
 
   const setParams = useCallback(
-    (updates: Record<string, string | null>) => {
+    (updates: Record<string, string | null>, resetPage = true) => {
       const params = new URLSearchParams(searchParams.toString())
       for (const [key, value] of Object.entries(updates)) {
         if (value === null || value === "") {
@@ -58,6 +92,9 @@ export function useCustomersList() {
           params.set(key, value)
         }
       }
+      if (resetPage) {
+        params.set(CUSTOMER_FILTER_PARAMS.page, "0")
+      }
       router.replace(`${pathname}?${params.toString()}`)
     },
     [pathname, router, searchParams]
@@ -65,25 +102,81 @@ export function useCustomersList() {
 
   const setPage = useCallback(
     (nextPage: number) => {
-      setParams({ page: String(Math.max(0, nextPage)) })
+      setParams(
+        { [CUSTOMER_FILTER_PARAMS.page]: String(Math.max(0, nextPage)) },
+        false
+      )
     },
     [setParams]
   )
 
-  const setSearchTerm = useCallback(
-    (term: string) => {
+  const setSearchType = useCallback(
+    (next: SearchType) => {
       setParams({
-        searchTerm: term.trim() || null,
-        page: "0",
+        [CUSTOMER_FILTER_PARAMS.searchType]: next === "default" ? null : next,
+        [CUSTOMER_FILTER_PARAMS.searchTerm]: null,
+        [CUSTOMER_FILTER_PARAMS.customerSrNo]: null,
       })
     },
     [setParams]
   )
 
+  const setIsClient = useCallback(
+    (next: boolean) => {
+      setParams({
+        [CUSTOMER_FILTER_PARAMS.isClient]: next ? null : "false",
+      })
+    },
+    [setParams]
+  )
+
+  const setSortByEnum = useCallback(
+    (next: string) => {
+      setParams({
+        [CUSTOMER_FILTER_PARAMS.sortByEnum]:
+          next === "REGISTERED_DATE" ? null : next,
+      })
+    },
+    [setParams]
+  )
+
+  const setSearchQuery = useCallback(
+    (value: string) => {
+      const trimmed = value.trim()
+      if (searchType === "cusId") {
+        setParams({
+          [CUSTOMER_FILTER_PARAMS.customerSrNo]: trimmed || null,
+          [CUSTOMER_FILTER_PARAMS.searchTerm]: null,
+        })
+        return
+      }
+      setParams({
+        [CUSTOMER_FILTER_PARAMS.searchTerm]: trimmed || null,
+        [CUSTOMER_FILTER_PARAMS.customerSrNo]: null,
+      })
+    },
+    [searchType, setParams]
+  )
+
+  const applyMoreFilters = useCallback(
+    (updates: Record<string, string | null>) => {
+      setParams(updates)
+    },
+    [setParams]
+  )
+
+  const clearMoreFilters = useCallback(() => {
+    const updates: Record<string, string | null> = {}
+    for (const key of MORE_FILTER_KEYS) {
+      updates[key] = null
+    }
+    setParams(updates)
+  }, [setParams])
+
   // Ensure URL always has a page (legacy: default to 0)
   useEffect(() => {
     if (pageParam === null) {
-      setParams({ page: "0" })
+      setParams({ [CUSTOMER_FILTER_PARAMS.page]: "0" }, false)
     }
   }, [pageParam, setParams])
 
@@ -95,16 +188,15 @@ export function useCustomersList() {
       variables: {
         page: page + 1,
         limit: CUSTOMERS_PAGE_LIMIT,
-        filter: {
-          isClient: true,
-          roleFilter: roleFilter.length > 0 ? roleFilter : undefined,
-          ...(searchTerm ? { searchTerm } : {}),
-        },
+        filter: gqlFilter,
       },
     })
-  }, [fetchUsers, page, roleFilter, searchTerm, session?.user])
+  }, [fetchUsers, page, gqlFilter, session?.user])
 
   const rows: CustomerListRow[] = data?.getUsersByFilter ?? []
+
+  const searchInputValue =
+    searchType === "cusId" ? customerSrNo : searchTerm
 
   return {
     rows,
@@ -112,8 +204,18 @@ export function useCustomersList() {
     error,
     page: Number.isInteger(page) && page >= 0 ? page : 0,
     pageSize: CUSTOMERS_PAGE_LIMIT,
-    searchTerm,
+    searchType,
+    searchInputValue,
+    isClient,
+    sortByEnum,
+    activeFilterCount,
+    searchParams,
     setPage,
-    setSearchTerm,
+    setSearchType,
+    setIsClient,
+    setSortByEnum,
+    setSearchQuery,
+    applyMoreFilters,
+    clearMoreFilters,
   }
 }

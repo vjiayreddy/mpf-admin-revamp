@@ -64,6 +64,16 @@ export type GetUsersByFilterData = {
   getUsersByFilter: CustomerListRow[]
 }
 
+export type MpfDateFilterInput = {
+  day: number
+  month: number
+  year: number
+  hour: number
+  minute: number
+  timestamp: string
+  datestamp: string
+}
+
 export type UserFilterInput = {
   searchTerm?: string
   isClient?: boolean
@@ -72,8 +82,15 @@ export type UserFilterInput = {
   customerSrNo?: number
   userStatus?: string
   customerType?: string
+  countryCode?: string
   studioIds?: string[]
   secondaryStudioIds?: string[]
+  startCreatedDate?: MpfDateFilterInput
+  endCreatedDate?: MpfDateFilterInput
+  startCCDueDate?: MpfDateFilterInput
+  endCCDueDate?: MpfDateFilterInput
+  startLastUpdatedDate?: MpfDateFilterInput
+  endLastUpdatedDate?: MpfDateFilterInput
 }
 
 export type GetUsersByFilterVars = {
