@@ -1,5 +1,17 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { Suspense } from "react"
+
+import { TicketTrackerPageClient } from "./ticket-tracker-page-client"
 
 export default function TicketTrackerPage() {
-  return <PlaceholderPage title="Ticket Tracker" />
+  return (
+    <Suspense
+      fallback={
+        <div className="text-muted-foreground text-sm">
+          Loading tickets…
+        </div>
+      }
+    >
+      <TicketTrackerPageClient />
+    </Suspense>
+  )
 }
