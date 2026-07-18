@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import type {
   CellClassParams,
   ColDef,
@@ -10,6 +10,7 @@ import type {
 import { ListFilterIcon } from "lucide-react"
 
 import { CustomersFilterBar } from "@/components/customers/customers-filter-bar"
+import { QuickCustomerView } from "@/components/customers/quick-customer-view"
 import { DataGrid } from "@/components/data-grid/data-grid"
 import { DataGridPagination } from "@/components/data-grid/data-grid-pagination"
 import { Input } from "@/components/ui/input"
@@ -36,13 +37,30 @@ function isCcOverdue(iso?: string | null) {
   return due < today
 }
 
-function CustomerNameCell({ data }: ICellRendererParams<CustomerListRow>) {
+type CustomerNameCellParams = ICellRendererParams<CustomerListRow> & {
+  onOpenQuickView?: (userId: string) => void
+}
+
+function CustomerNameCell(params: CustomerNameCellParams) {
+  const { data, onOpenQuickView } = params
   if (!data) return null
   const name =
     `${data.firstName ?? ""} ${data.lastName ?? ""}`.trim() ||
     data.fullName ||
     "—"
-  return <span className="font-medium">{name}</span>
+
+  return (
+    <button
+      type="button"
+      className="text-primary cursor-pointer truncate font-medium hover:underline"
+      onClick={(e) => {
+        e.stopPropagation()
+        if (data._id) onOpenQuickView?.(data._id)
+      }}
+    >
+      {name}
+    </button>
+  )
 }
 
 function StatusCell({ value }: ICellRendererParams<CustomerListRow, string>) {
@@ -85,6 +103,11 @@ export function CustomersPageClient() {
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
   const [pageQuickFilter, setPageQuickFilter] = useState("")
   const [createdNotice, setCreatedNotice] = useState<string | null>(null)
+  const [quickViewUserId, setQuickViewUserId] = useState<string | null>(null)
+
+  const openQuickView = useCallback((userId: string) => {
+    setQuickViewUserId(userId)
+  }, [])
 
   const columnDefs = useMemo(
     () =>
@@ -96,6 +119,9 @@ export function CustomersPageClient() {
         pinned: "left",
         lockPinned: true,
         cellRenderer: CustomerNameCell,
+        cellRendererParams: {
+          onOpenQuickView: openQuickView,
+        },
         valueGetter: (p: ValueGetterParams<CustomerListRow>) =>
           `${p.data?.firstName ?? ""} ${p.data?.lastName ?? ""}`.trim() ||
           p.data?.fullName ||
@@ -203,7 +229,7 @@ export function CustomersPageClient() {
         valueGetter: (p) => formatDate(p.data?.lastUpdatedAt?.timestamp),
       },
     ] as ColDef<CustomerListRow>[],
-    []
+    [openQuickView]
   )
 
   const hasChips = activeFilters.length > 0
@@ -290,6 +316,14 @@ export function CustomersPageClient() {
           disabled={loading}
         />
       </div>
+
+      <QuickCustomerView
+        open={!!quickViewUserId}
+        userId={quickViewUserId}
+        onOpenChange={(next) => {
+          if (!next) setQuickViewUserId(null)
+        }}
+      />
     </div>
   )
 }
