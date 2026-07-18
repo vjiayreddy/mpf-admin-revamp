@@ -7,6 +7,7 @@ import {
 import { SetContextLink } from "@apollo/client/link/context"
 import { ErrorLink } from "@apollo/client/link/error"
 
+import { networkActivityLink } from "@/lib/apollo/network-activity-link"
 import { authClient } from "@/lib/auth-client"
 
 function createApolloClient() {
@@ -32,7 +33,12 @@ function createApolloClient() {
   })
 
   return new ApolloClient({
-    link: ApolloLink.from([errorLink, authLink, httpLink]),
+    link: ApolloLink.from([
+      networkActivityLink,
+      errorLink,
+      authLink,
+      httpLink,
+    ]),
     cache: new InMemoryCache(),
     defaultOptions: {
       watchQuery: {

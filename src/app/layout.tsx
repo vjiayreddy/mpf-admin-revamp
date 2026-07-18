@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 
+import { NetworkStatusUi } from "@/components/network/network-status-ui"
+import { NetworkStatusProvider } from "@/components/providers/network-status-provider"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ApolloAppProvider } from "@/lib/apollo/apollo-provider"
@@ -43,11 +45,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ApolloAppProvider>
-            <TooltipProvider>{children}</TooltipProvider>
-          </ApolloAppProvider>
+          <NetworkStatusProvider>
+            <ApolloAppProvider>
+              <TooltipProvider>
+                <NetworkStatusUi />
+                {children}
+              </TooltipProvider>
+            </ApolloAppProvider>
+          </NetworkStatusProvider>
         </ThemeProvider>
       </body>
     </html>
   )
 }
+
