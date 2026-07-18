@@ -7,7 +7,7 @@ import { useTheme } from "next-themes"
 import { authClient } from "@/lib/auth-client"
 import { LOGOUT_STYLIST } from "@/lib/graphql/queries/user"
 import { getPageTitle } from "@/config/navigation"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -25,9 +25,10 @@ import { usePathname } from "next/navigation"
 type SiteHeaderProps = {
   userName?: string | null
   userEmail?: string | null
+  userImage?: string | null
 }
 
-export function SiteHeader({ userName, userEmail }: SiteHeaderProps) {
+export function SiteHeader({ userName, userEmail, userImage }: SiteHeaderProps) {
   const pathname = usePathname()
   const title = getPageTitle(pathname)
   const { resolvedTheme, setTheme } = useTheme()
@@ -105,19 +106,30 @@ export function SiteHeader({ userName, userEmail }: SiteHeaderProps) {
             }
           >
             <Avatar className="size-8">
+              {userImage ? (
+                <AvatarImage src={userImage} alt={userName ?? "User"} />
+              ) : null}
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-medium">
-                    {userName ?? "Admin"}
-                  </span>
-                  <span className="text-muted-foreground text-xs">
-                    {userEmail ?? ""}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <Avatar className="size-8">
+                    {userImage ? (
+                      <AvatarImage src={userImage} alt={userName ?? "User"} />
+                    ) : null}
+                    <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="truncate text-sm font-medium">
+                      {userName ?? "Admin"}
+                    </span>
+                    <span className="text-muted-foreground truncate text-xs">
+                      {userEmail ?? ""}
+                    </span>
+                  </div>
                 </div>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
