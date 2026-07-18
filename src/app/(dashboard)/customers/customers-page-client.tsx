@@ -79,10 +79,12 @@ export function CustomersPageClient() {
     clearMoreFilters,
     clearFilter,
     clearAllFilters,
+    reloadCustomers,
   } = useCustomersList()
 
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
   const [pageQuickFilter, setPageQuickFilter] = useState("")
+  const [createdNotice, setCreatedNotice] = useState<string | null>(null)
 
   const columnDefs = useMemo(
     () =>
@@ -237,8 +239,18 @@ export function CustomersPageClient() {
         onClearMoreFilters={clearMoreFilters}
         onClearFilter={clearFilter}
         onClearAllFilters={clearAllFilters}
+        onCustomerCreated={(userId) => {
+          setCreatedNotice(`Customer created (${userId}).`)
+          reloadCustomers()
+        }}
         searchParams={searchParams}
       />
+
+      {createdNotice ? (
+        <p className="text-sm text-emerald-700 dark:text-emerald-400" role="status">
+          {createdNotice}
+        </p>
+      ) : null}
 
       {error ? (
         <p className="text-destructive text-sm" role="alert">

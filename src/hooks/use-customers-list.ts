@@ -216,6 +216,18 @@ export function useCustomersList() {
   const searchInputValue =
     searchType === "cusId" ? customerSrNo : searchTerm
 
+  const reloadCustomers = useCallback(() => {
+    if (!Number.isInteger(page) || page < 0) return
+    if (!session?.user) return
+    void fetchUsers({
+      variables: {
+        page: page + 1,
+        limit: CUSTOMERS_PAGE_LIMIT,
+        filter: gqlFilter,
+      },
+    })
+  }, [fetchUsers, page, gqlFilter, session?.user])
+
   return {
     rows,
     loading,
@@ -238,5 +250,6 @@ export function useCustomersList() {
     clearMoreFilters,
     clearFilter,
     clearAllFilters,
+    reloadCustomers,
   }
 }
