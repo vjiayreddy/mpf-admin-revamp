@@ -13,8 +13,30 @@ let lastRequestMs: number | null = null
 let updatedAt = 0
 const listeners = new Set<Listener>()
 
+/** Stable snapshot refs — required by useSyncExternalStore (Object.is). */
+let clientSnapshot: NetworkActivitySnapshot = {
+  inFlightCount: 0,
+  lastRequestMs: null,
+  updatedAt: 0,
+}
+
+const SERVER_SNAPSHOT: NetworkActivitySnapshot = {
+  inFlightCount: 0,
+  lastRequestMs: null,
+  updatedAt: 0,
+}
+
+function refreshClientSnapshot() {
+  clientSnapshot = {
+    inFlightCount,
+    lastRequestMs,
+    updatedAt,
+  }
+}
+
 function emit() {
   updatedAt = Date.now()
+  refreshClientSnapshot()
   for (const listener of listeners) {
     listener()
   }
@@ -32,11 +54,7 @@ export function trackRequestEnd(durationMs: number) {
 }
 
 export function getNetworkActivitySnapshot(): NetworkActivitySnapshot {
-  return {
-    inFlightCount,
-    lastRequestMs,
-    updatedAt,
-  }
+  return clientSnapshot
 }
 
 export function subscribeNetworkActivity(listener: Listener) {
@@ -47,9 +65,5 @@ export function subscribeNetworkActivity(listener: Listener) {
 }
 
 export function getServerNetworkActivitySnapshot(): NetworkActivitySnapshot {
-  return {
-    inFlightCount: 0,
-    lastRequestMs: null,
-    updatedAt: 0,
-  }
+  return SERVER_SNAPSHOT
 }

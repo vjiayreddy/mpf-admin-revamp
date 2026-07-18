@@ -96,11 +96,11 @@ export function NetworkStatusProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (activity.inFlightCount <= 0) {
-      setShowGlobalProgress(false)
+      setShowGlobalProgress((prev) => (prev ? false : prev))
       return
     }
 
-    // Slow / offline / unknown-but-in-flight: show immediately when slow
+    // Slow / offline: show progress immediately
     if (quality === "slow" || quality === "offline") {
       setShowGlobalProgress(true)
       return
