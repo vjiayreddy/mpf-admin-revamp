@@ -1,5 +1,17 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { Suspense } from "react"
+
+import { AppointmentsPageClient } from "./appointments-page-client"
 
 export default function AppointmentsPage() {
-  return <PlaceholderPage title="Appointments" />
+  return (
+    <Suspense
+      fallback={
+        <div className="text-muted-foreground text-sm">
+          Loading appointments…
+        </div>
+      }
+    >
+      <AppointmentsPageClient />
+    </Suspense>
+  )
 }
