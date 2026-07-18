@@ -1,5 +1,15 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { Suspense } from "react"
+
+import { InvoicePageClient } from "./invoice-page-client"
 
 export default function InvoicePage() {
-  return <PlaceholderPage title="Invoice" />
+  return (
+    <Suspense
+      fallback={
+        <div className="text-muted-foreground text-sm">Loading invoices…</div>
+      }
+    >
+      <InvoicePageClient />
+    </Suspense>
+  )
 }
