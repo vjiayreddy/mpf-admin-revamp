@@ -55,7 +55,8 @@ export function CustomersPageClient() {
     searchInputValue,
     isClient,
     sortByEnum,
-    activeFilterCount,
+    activeFilters,
+    advancedFilterCount,
     searchParams,
     setPage,
     setSearchType,
@@ -64,6 +65,8 @@ export function CustomersPageClient() {
     setSearchQuery,
     applyMoreFilters,
     clearMoreFilters,
+    clearFilter,
+    clearAllFilters,
   } = useCustomersList()
 
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
@@ -160,12 +163,18 @@ export function CustomersPageClient() {
     []
   )
 
+  const hasChips = activeFilters.length > 0
+  const gridHeight = hasChips
+    ? "h-[calc(100vh-22rem)]"
+    : "h-[calc(100vh-18rem)]"
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
         <p className="text-muted-foreground text-sm">
-          Customer directory — filters stay in the URL for shareable views.
+          Search customers, then refine with filters. Applied filters show
+          below as chips you can remove.
         </p>
       </div>
 
@@ -174,7 +183,8 @@ export function CustomersPageClient() {
         searchInputValue={searchInputValue}
         isClient={isClient}
         sortByEnum={sortByEnum}
-        activeFilterCount={activeFilterCount}
+        activeFilters={activeFilters}
+        advancedFilterCount={advancedFilterCount}
         loading={loading}
         onSearchTypeChange={setSearchType}
         onIsClientChange={setIsClient}
@@ -184,6 +194,8 @@ export function CustomersPageClient() {
         onMoreFiltersOpenChange={setMoreFiltersOpen}
         onApplyMoreFilters={applyMoreFilters}
         onClearMoreFilters={clearMoreFilters}
+        onClearFilter={clearFilter}
+        onClearAllFilters={clearAllFilters}
         searchParams={searchParams}
       />
 
@@ -199,7 +211,7 @@ export function CustomersPageClient() {
           columnDefs={columnDefs}
           loading={loading}
           getRowId={(params) => params.data._id}
-          heightClassName="h-[calc(100vh-20rem)]"
+          heightClassName={gridHeight}
           className="rounded-none border-0"
         />
         <DataGridPagination

@@ -12,7 +12,9 @@ import {
 import { authClient } from "@/lib/auth-client"
 import {
   buildUsersFilterFromSearchParams,
-  countActiveCustomerFilters,
+  countAdvancedCustomerFilters,
+  getClearAllCustomerFilterUpdates,
+  listActiveCustomerFilters,
 } from "@/lib/customers/build-users-filter"
 import {
   CUSTOMERS_PAGE_LIMIT,
@@ -70,8 +72,13 @@ export function useCustomersList() {
     [paramsKey, sessionRoleFilter]
   )
 
-  const activeFilterCount = useMemo(
-    () => countActiveCustomerFilters(new URLSearchParams(paramsKey)),
+  const activeFilters = useMemo(
+    () => listActiveCustomerFilters(new URLSearchParams(paramsKey)),
+    [paramsKey]
+  )
+
+  const advancedFilterCount = useMemo(
+    () => countAdvancedCustomerFilters(new URLSearchParams(paramsKey)),
     [paramsKey]
   )
 
@@ -173,6 +180,17 @@ export function useCustomersList() {
     setParams(updates)
   }, [setParams])
 
+  const clearFilter = useCallback(
+    (updates: Record<string, string | null>) => {
+      setParams(updates)
+    },
+    [setParams]
+  )
+
+  const clearAllFilters = useCallback(() => {
+    setParams(getClearAllCustomerFilterUpdates())
+  }, [setParams])
+
   // Ensure URL always has a page (legacy: default to 0)
   useEffect(() => {
     if (pageParam === null) {
@@ -208,7 +226,8 @@ export function useCustomersList() {
     searchInputValue,
     isClient,
     sortByEnum,
-    activeFilterCount,
+    activeFilters,
+    advancedFilterCount,
     searchParams,
     setPage,
     setSearchType,
@@ -217,5 +236,7 @@ export function useCustomersList() {
     setSearchQuery,
     applyMoreFilters,
     clearMoreFilters,
+    clearFilter,
+    clearAllFilters,
   }
 }

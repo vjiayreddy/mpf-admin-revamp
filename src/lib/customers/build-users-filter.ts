@@ -1,4 +1,10 @@
-import { CUSTOMER_FILTER_PARAMS } from "@/config/customer-filters"
+import {
+  CUSTOMER_FILTER_PARAMS,
+  CUSTOMER_TYPE_OPTIONS,
+  MORE_FILTER_KEYS,
+  SORT_BY_OPTIONS,
+  USER_STATUS_OPTIONS,
+} from "@/config/customer-filters"
 import {
   endDateFilter,
   startDateFilter,
@@ -128,40 +134,239 @@ export function buildUsersFilterFromSearchParams(
   return filter
 }
 
-/** Count non-default filters for badge UI (cheap, URL-only). */
+export type ActiveCustomerFilter = {
+  id: string
+  label: string
+  displayValue: string
+  /** URL keys to null out when this chip is removed */
+  clear: Record<string, null>
+}
+
+function formatChipDate(iso: string | null): string {
+  if (!iso) return "—"
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return "—"
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })
+}
+
+function formatDateRange(
+  startIso: string | null,
+  endIso: string | null
+): string {
+  return `${formatChipDate(startIso)} → ${formatChipDate(endIso)}`
+}
+
+function optionLabel(
+  options: ReadonlyArray<{ value: string; label: string }>,
+  value: string
+): string {
+  return options.find((o) => o.value === value)?.label ?? value
+}
+
+function pushDateRangeChip(
+  chips: ActiveCustomerFilter[],
+  id: string,
+  label: string,
+  startKey: string,
+  endKey: string,
+  searchParams: URLSearchParams
+) {
+  const start = searchParams.get(startKey)
+  const end = searchParams.get(endKey)
+  if (!start && !end) return
+  chips.push({
+    id,
+    label,
+    displayValue: formatDateRange(start, end),
+    clear: { [startKey]: null, [endKey]: null },
+  })
+}
+
+/**
+ * Human-readable active filters for chips UI.
+ * One chip per logical filter (date ranges share a chip).
+ */
+export function listActiveCustomerFilters(
+  searchParams: URLSearchParams
+): ActiveCustomerFilter[] {
+  const p = CUSTOMER_FILTER_PARAMS
+  const chips: ActiveCustomerFilter[] = []
+
+  const searchTerm = searchParams.get(p.searchTerm)
+  if (searchTerm) {
+    chips.push({
+      id: "searchTerm",
+      label: "Search",
+      displayValue: searchTerm,
+      clear: { [p.searchTerm]: null },
+    })
+  }
+
+  const customerSrNo = searchParams.get(p.customerSrNo)
+  if (customerSrNo) {
+    chips.push({
+      id: "customerSrNo",
+      label: "Customer ID",
+      displayValue: customerSrNo,
+      clear: { [p.customerSrNo]: null },
+    })
+  }
+
+  if (searchParams.get(p.stylist)) {
+    chips.push({
+      id: "stylist",
+      label: "Stylist",
+      displayValue: "Selected stylist",
+      clear: { [p.stylist]: null },
+    })
+  }
+
+  if (searchParams.get(p.isClient) === "false") {
+    chips.push({
+      id: "isClient",
+      label: "Audience",
+      displayValue: "Non client",
+      clear: { [p.isClient]: null },
+    })
+  }
+
+  const sortBy = searchParams.get(p.sortByEnum)
+  if (sortBy && sortBy !== "REGISTERED_DATE") {
+    chips.push({
+      id: "sortByEnum",
+      label: "Sort",
+      displayValue: optionLabel(SORT_BY_OPTIONS, sortBy),
+      clear: { [p.sortByEnum]: null },
+    })
+  }
+
+  const userStatus = searchParams.get(p.userStatus)
+  if (userStatus) {
+    chips.push({
+      id: "userStatus",
+      label: "Status",
+      displayValue: optionLabel(USER_STATUS_OPTIONS, userStatus),
+      clear: { [p.userStatus]: null },
+    })
+  }
+
+  const customerType = searchParams.get(p.customerType)
+  if (customerType) {
+    chips.push({
+      id: "customerType",
+      label: "Type",
+      displayValue: optionLabel(CUSTOMER_TYPE_OPTIONS, customerType),
+      clear: { [p.customerType]: null },
+    })
+  }
+
+  const countryCode = searchParams.get(p.countryCode)
+  if (countryCode) {
+    chips.push({
+      id: "countryCode",
+      label: "Country code",
+      displayValue: countryCode,
+      clear: { [p.countryCode]: null },
+    })
+  }
+
+  const studioIds = searchParams.get(p.studioIds)
+  if (studioIds) {
+    chips.push({
+      id: "studioIds",
+      label: "Primary studios",
+      displayValue: studioIds,
+      clear: { [p.studioIds]: null },
+    })
+  }
+
+  const secondaryStudioIds = searchParams.get(p.secondaryStudioIds)
+  if (secondaryStudioIds) {
+    chips.push({
+      id: "secondaryStudioIds",
+      label: "Secondary studios",
+      displayValue: secondaryStudioIds,
+      clear: { [p.secondaryStudioIds]: null },
+    })
+  }
+
+  pushDateRangeChip(
+    chips,
+    "registeredDate",
+    "Registered",
+    p.startCreatedDate,
+    p.endCreatedDate,
+    searchParams
+  )
+  pushDateRangeChip(
+    chips,
+    "ccDueDate",
+    "CC due",
+    p.startCCDueDate,
+    p.endCCDueDate,
+    searchParams
+  )
+  pushDateRangeChip(
+    chips,
+    "lastUpdatedDate",
+    "Last updated",
+    p.startLastUpdatedDate,
+    p.endLastUpdatedDate,
+    searchParams
+  )
+
+  return chips
+}
+
+/** Count non-default filters for badge / summary UI. */
 export function countActiveCustomerFilters(
   searchParams: URLSearchParams
 ): number {
-  let count = 0
+  return listActiveCustomerFilters(searchParams).length
+}
+
+/** Advanced (More Filters sheet) count — for the More filters badge. */
+export function countAdvancedCustomerFilters(
+  searchParams: URLSearchParams
+): number {
   const p = CUSTOMER_FILTER_PARAMS
-
-  if (searchParams.get(p.searchTerm)) count += 1
-  if (searchParams.get(p.customerSrNo)) count += 1
-  if (searchParams.get(p.stylist)) count += 1
-  if (searchParams.get(p.userStatus)) count += 1
-  if (searchParams.get(p.customerType)) count += 1
-  if (searchParams.get(p.countryCode)) count += 1
-  if (searchParams.get(p.studioIds)) count += 1
-  if (searchParams.get(p.secondaryStudioIds)) count += 1
-
+  let count = 0
   for (const key of [
-    p.startCreatedDate,
-    p.endCreatedDate,
-    p.startCCDueDate,
-    p.endCCDueDate,
-    p.startLastUpdatedDate,
-    p.endLastUpdatedDate,
+    p.customerType,
+    p.userStatus,
+    p.countryCode,
+    p.studioIds,
+    p.secondaryStudioIds,
   ] as const) {
     if (searchParams.get(key)) count += 1
   }
-
-  if (searchParams.get(p.isClient) === "false") count += 1
-  if (
-    searchParams.get(p.sortByEnum) &&
-    searchParams.get(p.sortByEnum) !== "REGISTERED_DATE"
-  ) {
-    count += 1
+  const pairs: Array<[string, string]> = [
+    [p.startCreatedDate, p.endCreatedDate],
+    [p.startCCDueDate, p.endCCDueDate],
+    [p.startLastUpdatedDate, p.endLastUpdatedDate],
+  ]
+  for (const [start, end] of pairs) {
+    if (searchParams.get(start) || searchParams.get(end)) count += 1
   }
-
   return count
+}
+
+/** All clearable filter URL keys (preserves page). */
+export function getClearAllCustomerFilterUpdates(): Record<string, null> {
+  const updates: Record<string, null> = {
+    [CUSTOMER_FILTER_PARAMS.searchTerm]: null,
+    [CUSTOMER_FILTER_PARAMS.customerSrNo]: null,
+    [CUSTOMER_FILTER_PARAMS.searchType]: null,
+    [CUSTOMER_FILTER_PARAMS.stylist]: null,
+    [CUSTOMER_FILTER_PARAMS.isClient]: null,
+    [CUSTOMER_FILTER_PARAMS.sortByEnum]: null,
+  }
+  for (const key of MORE_FILTER_KEYS) {
+    updates[key] = null
+  }
+  return updates
 }

@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useId, useState, type FormEvent } from "react"
 import { FilterIcon, SearchIcon } from "lucide-react"
 
+import { CustomersActiveFilters } from "@/components/customers/customers-active-filters"
 import { CustomersMoreFilters } from "@/components/customers/customers-more-filters"
-import { FilterSelect } from "@/components/customers/filter-fields"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,13 +13,22 @@ import {
   SORT_BY_OPTIONS,
   type SearchType,
 } from "@/config/customer-filters"
+import type { ActiveCustomerFilter } from "@/lib/customers/build-users-filter"
+import { cn } from "@/lib/utils"
+
+const compactSelectClass = cn(
+  "border-input bg-transparent h-8 shrink-0 rounded-lg border px-2 text-sm outline-none",
+  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+  "disabled:cursor-not-allowed disabled:opacity-50"
+)
 
 type CustomersFilterBarProps = {
   searchType: SearchType
   searchInputValue: string
   isClient: boolean
   sortByEnum: string
-  activeFilterCount: number
+  activeFilters: ActiveCustomerFilter[]
+  advancedFilterCount: number
   loading?: boolean
   onSearchTypeChange: (value: SearchType) => void
   onIsClientChange: (value: boolean) => void
@@ -29,6 +38,8 @@ type CustomersFilterBarProps = {
   onMoreFiltersOpenChange: (open: boolean) => void
   onApplyMoreFilters: (updates: Record<string, string | null>) => void
   onClearMoreFilters: () => void
+  onClearFilter: (updates: Record<string, string | null>) => void
+  onClearAllFilters: () => void
   searchParams: URLSearchParams
 }
 
@@ -37,7 +48,8 @@ export function CustomersFilterBar({
   searchInputValue,
   isClient,
   sortByEnum,
-  activeFilterCount,
+  activeFilters,
+  advancedFilterCount,
   loading,
   onSearchTypeChange,
   onIsClientChange,
@@ -47,9 +59,14 @@ export function CustomersFilterBar({
   onMoreFiltersOpenChange,
   onApplyMoreFilters,
   onClearMoreFilters,
+  onClearFilter,
+  onClearAllFilters,
   searchParams,
 }: CustomersFilterBarProps) {
   const [draft, setDraft] = useState(searchInputValue)
+  const searchTypeId = useId()
+  const clientId = useId()
+  const sortId = useId()
 
   useEffect(() => {
     setDraft(searchInputValue)
@@ -61,73 +78,112 @@ export function CustomersFilterBar({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <FilterSelect
-          label="Client"
-          value={isClient ? "true" : "false"}
-          onChange={(v) => onIsClientChange(v === "true")}
-          options={[
-            { value: "true", label: "Client" },
-            { value: "false", label: "Non client" },
-          ]}
-          disabled={loading}
-        />
-        <FilterSelect
-          label="Sort by"
-          value={sortByEnum}
-          onChange={onSortByChange}
-          options={SORT_BY_OPTIONS}
-          disabled={loading}
-        />
-        <FilterSelect
-          label="Search type"
-          value={searchType}
-          onChange={(v) => onSearchTypeChange(v as SearchType)}
-          options={SEARCH_TYPE_OPTIONS}
-          disabled={loading}
-        />
-        <div className="flex items-end">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={() => onMoreFiltersOpenChange(true)}
-          >
-            <FilterIcon className="size-4" />
-            More filters
-            {activeFilterCount > 0 ? (
-              <Badge variant="secondary" className="ml-1">
-                {activeFilterCount}
-              </Badge>
-            ) : null}
-          </Button>
-        </div>
-      </div>
-
+    <div className="bg-card flex flex-col gap-3 rounded-lg border p-3 sm:p-4">
+      {/* Row 1 — search dominant */}
       <form
         onSubmit={submit}
-        className="flex flex-col gap-2 sm:flex-row sm:items-center"
+        className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch"
       >
-        <div className="relative min-w-0 flex-1 sm:max-w-md">
-          <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-          <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={
-              searchType === "cusId"
-                ? "Customer ID…"
-                : "Search name, phone, email…"
-            }
-            className="pl-8"
-            aria-label="Search customers"
+        <div className="border-input flex min-w-0 flex-1 overflow-hidden rounded-lg border focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+          <label htmlFor={searchTypeId} className="sr-only">
+            Search type
+          </label>
+          <select
+            id={searchTypeId}
+            value={searchType}
             disabled={loading}
-          />
+            onChange={(e) => onSearchTypeChange(e.target.value as SearchType)}
+            className="border-input bg-muted/40 text-foreground h-9 shrink-0 border-0 border-r px-2 text-sm outline-none disabled:opacity-50"
+          >
+            {SEARCH_TYPE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.value === "default" ? "Name" : "Cus. ID"}
+              </option>
+            ))}
+          </select>
+          <div className="relative min-w-0 flex-1">
+            <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+            <Input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={
+                searchType === "cusId"
+                  ? "Search by customer ID…"
+                  : "Search name, phone, or email…"
+              }
+              className="h-9 rounded-none border-0 pl-8 shadow-none focus-visible:ring-0"
+              aria-label="Search customers"
+              disabled={loading}
+            />
+          </div>
         </div>
-        <Button type="submit" variant="secondary" size="sm" disabled={loading}>
+        <Button
+          type="submit"
+          variant="secondary"
+          className="h-9 shrink-0 sm:px-4"
+          disabled={loading}
+        >
           Search
         </Button>
       </form>
+
+      {/* Row 2 — compact secondary toolbar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor={clientId} className="sr-only">
+          Client filter
+        </label>
+        <select
+          id={clientId}
+          className={compactSelectClass}
+          value={isClient ? "true" : "false"}
+          disabled={loading}
+          onChange={(e) => onIsClientChange(e.target.value === "true")}
+        >
+          <option value="true">Client</option>
+          <option value="false">Non client</option>
+        </select>
+
+        <label htmlFor={sortId} className="sr-only">
+          Sort by
+        </label>
+        <select
+          id={sortId}
+          className={cn(compactSelectClass, "min-w-[10rem]")}
+          value={sortByEnum}
+          disabled={loading}
+          onChange={(e) => onSortByChange(e.target.value)}
+        >
+          {SORT_BY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              Sort: {opt.label}
+            </option>
+          ))}
+        </select>
+
+        <div className="flex-1" />
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8"
+          onClick={() => onMoreFiltersOpenChange(true)}
+        >
+          <FilterIcon className="size-4" />
+          More filters
+          {advancedFilterCount > 0 ? (
+            <Badge variant="secondary" className="ml-0.5">
+              {advancedFilterCount}
+            </Badge>
+          ) : null}
+        </Button>
+      </div>
+
+      <CustomersActiveFilters
+        filters={activeFilters}
+        onClearFilter={onClearFilter}
+        onClearAll={onClearAllFilters}
+      />
 
       <CustomersMoreFilters
         open={moreFiltersOpen}
