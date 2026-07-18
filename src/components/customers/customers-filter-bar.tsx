@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useId, useState, type FormEvent } from "react"
-import { FilterIcon, SearchIcon } from "lucide-react"
+import { FilterIcon, PlusIcon, SearchIcon } from "lucide-react"
 
+import { CreateCustomerDialog } from "@/components/customers/create-customer-dialog"
 import { CustomersActiveFilters } from "@/components/customers/customers-active-filters"
 import { CustomersMoreFilters } from "@/components/customers/customers-more-filters"
 import { Badge } from "@/components/ui/badge"
@@ -40,6 +41,7 @@ type CustomersFilterBarProps = {
   onClearMoreFilters: () => void
   onClearFilter: (updates: Record<string, string | null>) => void
   onClearAllFilters: () => void
+  onCustomerCreated?: (userId: string) => void
   searchParams: URLSearchParams
 }
 
@@ -61,9 +63,11 @@ export function CustomersFilterBar({
   onClearMoreFilters,
   onClearFilter,
   onClearAllFilters,
+  onCustomerCreated,
   searchParams,
 }: CustomersFilterBarProps) {
   const [draft, setDraft] = useState(searchInputValue)
+  const [createOpen, setCreateOpen] = useState(false)
   const searchTypeId = useId()
   const clientId = useId()
   const sortId = useId()
@@ -164,6 +168,17 @@ export function CustomersFilterBar({
 
         <Button
           type="button"
+          variant="secondary"
+          size="sm"
+          className="h-8"
+          onClick={() => setCreateOpen(true)}
+        >
+          <PlusIcon className="size-4" />
+          Add customer
+        </Button>
+
+        <Button
+          type="button"
           variant="outline"
           size="sm"
           className="h-8"
@@ -191,6 +206,12 @@ export function CustomersFilterBar({
         searchParams={searchParams}
         onApply={onApplyMoreFilters}
         onClear={onClearMoreFilters}
+      />
+
+      <CreateCustomerDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={onCustomerCreated}
       />
     </div>
   )
