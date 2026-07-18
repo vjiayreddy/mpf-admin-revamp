@@ -16,19 +16,15 @@ const gridTheme = themeQuartz.withParams({
   foregroundColor: "var(--foreground)",
   borderColor: "var(--border)",
   headerBackgroundColor: "var(--muted)",
-  headerFontWeight: 600,
-  headerTextColor: "var(--foreground)",
-  oddRowBackgroundColor:
-    "color-mix(in oklch, var(--muted) 45%, transparent)",
-  rowHoverColor: "color-mix(in oklch, var(--muted) 80%, transparent)",
+  oddRowBackgroundColor: "transparent",
+  rowHoverColor: "var(--muted)",
   selectedRowBackgroundColor:
     "color-mix(in oklch, var(--primary) 12%, transparent)",
   fontFamily: "var(--font-sans)",
   fontSize: 13,
   headerFontSize: 12,
-  spacing: 8,
+  spacing: 6,
   borderRadius: 8,
-  cellHorizontalPadding: 12,
 })
 
 export type DataGridProps<TData> = {
@@ -72,7 +68,7 @@ export function DataGrid<TData>({
   return (
     <div
       className={cn(
-        "mpf-data-grid bg-card w-full overflow-hidden rounded-lg border",
+        "bg-card w-full overflow-hidden rounded-lg border",
         heightClassName,
         className
       )}

@@ -128,9 +128,3 @@
     @apply font-sans;
   }
 }
-
-/* AG Grid: keep custom cell content vertically centered */
-.mpf-data-grid .ag-cell {
-  display: flex;
-  align-items: center;
-}
