@@ -45,6 +45,15 @@ export type DataGridProps<TData> = {
   quickFilterText?: string
   className?: string
   heightClassName?: string
+  /** Merged over the shared defaults (e.g. disable flex for drag-widen + scroll). */
+  defaultColDef?: ColDef<TData>
+  /**
+   * `autoHeight` sizes the grid to its rows (no fixed viewport height).
+   * Default `normal` uses `heightClassName` for a scrollable pane.
+   */
+  domLayout?: "normal" | "autoHeight" | "print"
+  /** Keep the horizontal scrollbar visible so users know more columns exist. */
+  alwaysShowHorizontalScroll?: boolean
   /** Community stand-in for Enterprise master/detail. */
   isFullWidthRow?: (params: IsFullWidthRowParams<TData>) => boolean
   fullWidthCellRenderer?: AgGridReactProps<TData>["fullWidthCellRenderer"]
@@ -75,6 +84,9 @@ export function DataGrid<TData>({
   quickFilterText,
   className,
   heightClassName = "h-[calc(100vh-14rem)]",
+  defaultColDef: defaultColDefOverride,
+  domLayout = "normal",
+  alwaysShowHorizontalScroll = false,
   isFullWidthRow,
   fullWidthCellRenderer,
   getRowHeight,
@@ -85,6 +97,7 @@ export function DataGrid<TData>({
   gridApiRef,
 }: DataGridProps<TData>) {
   const gridRef = useRef<AgGridReact<TData>>(null)
+  const autoHeight = domLayout === "autoHeight"
 
   const defaultColDef = useMemo<ColDef<TData>>(
     () => ({
@@ -100,15 +113,18 @@ export function DataGrid<TData>({
         const text = String(value)
         return text === "—" ? null : text
       },
+      ...defaultColDefOverride,
     }),
-    []
+    [defaultColDefOverride]
   )
 
   return (
     <div
       className={cn(
-        "mpf-data-grid bg-card w-full overflow-hidden rounded-lg border",
-        heightClassName,
+        "mpf-data-grid bg-card w-full rounded-lg border",
+        autoHeight
+          ? "h-auto min-h-0 overflow-x-auto overflow-y-hidden"
+          : cn("overflow-hidden", heightClassName),
         className
       )}
     >
@@ -142,7 +158,8 @@ export function DataGrid<TData>({
         ensureDomOrder
         valueCache={false}
         suppressScrollOnNewData
-        domLayout="normal"
+        domLayout={domLayout}
+        alwaysShowHorizontalScroll={alwaysShowHorizontalScroll}
       />
     </div>
   )
