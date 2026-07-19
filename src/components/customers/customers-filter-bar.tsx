@@ -42,6 +42,8 @@ type CustomersFilterBarProps = {
   onClearFilter: (updates: Record<string, string | null>) => void
   onClearAllFilters: () => void
   onCustomerCreated?: (userId: string) => void
+  /** When false, hides Add customer. Defaults to true. */
+  showCreateCustomer?: boolean
   searchParams: URLSearchParams
 }
 
@@ -64,6 +66,7 @@ export function CustomersFilterBar({
   onClearFilter,
   onClearAllFilters,
   onCustomerCreated,
+  showCreateCustomer = true,
   searchParams,
 }: CustomersFilterBarProps) {
   const [draft, setDraft] = useState(searchInputValue)
@@ -166,16 +169,18 @@ export function CustomersFilterBar({
 
         <div className="flex-1" />
 
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="h-8"
-          onClick={() => setCreateOpen(true)}
-        >
-          <PlusIcon className="size-4" />
-          Add customer
-        </Button>
+        {showCreateCustomer ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-8"
+            onClick={() => setCreateOpen(true)}
+          >
+            <PlusIcon className="size-4" />
+            Add customer
+          </Button>
+        ) : null}
 
         <Button
           type="button"
@@ -208,11 +213,13 @@ export function CustomersFilterBar({
         onClear={onClearMoreFilters}
       />
 
-      <CreateCustomerDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreated={onCustomerCreated}
-      />
+      {showCreateCustomer ? (
+        <CreateCustomerDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          onCreated={onCustomerCreated}
+        />
+      ) : null}
     </div>
   )
 }
