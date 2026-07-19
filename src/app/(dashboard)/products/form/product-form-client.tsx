@@ -41,6 +41,7 @@ import {
   PRODUCT_IMAGE_UPLOAD_PATH,
   uploadUrlsFromResult,
 } from "@/lib/uppy/config"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const selectClass = cn(
@@ -172,7 +173,9 @@ export function ProductFormClient() {
     setSaveSuccess(false)
 
     if (!teamId) {
-      setSubmitError("Missing team id on your session. Sign in again.")
+      const msg = "Missing team id on your session. Sign in again."
+      setSubmitError(msg)
+      notify.error(msg)
       return
     }
 
@@ -187,18 +190,22 @@ export function ProductFormClient() {
 
       const savedId = result.data?.saveProduct?._id
       if (!savedId) {
-        setSubmitError("Save failed — no product id returned.")
+        const msg = "Save failed — no product id returned."
+        setSubmitError(msg)
+        notify.error(msg)
         return
       }
 
       setSaveSuccess(true)
+      notify.success(productId ? "Product updated" : "Product saved")
       if (!productId) {
         router.replace(`/products/form?productId=${savedId}`)
       }
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to save product."
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to save product.")
     }
   })
 
@@ -592,20 +599,25 @@ export function ProductFormClient() {
         </div>
       </form>
 
-      <UppyFileUpload
-        open={showUpload}
-        uploadPath={PRODUCT_IMAGE_UPLOAD_PATH}
-        maxNumberOfFiles={4}
-        allowedFileTypes={[...PRODUCT_IMAGE_ALLOWED_TYPES]}
-        onClose={() => setShowUpload(false)}
-        onCompleted={(result) => {
-          const urls = uploadUrlsFromResult(result.successful)
-          if (urls.length > 0) {
-            setImages((prev) => [...prev, ...urls])
-          }
-          setShowUpload(false)
-        }}
-      />
+      {showUpload ? (
+        <UppyFileUpload
+          open
+          uppyId="product-image-upload"
+          uploadPath={PRODUCT_IMAGE_UPLOAD_PATH}
+          maxNumberOfFiles={4}
+          enableImageEditor
+          enableCompressor
+          allowedFileTypes={[...PRODUCT_IMAGE_ALLOWED_TYPES]}
+          onClose={() => setShowUpload(false)}
+          onCompleted={(result) => {
+            const urls = uploadUrlsFromResult(result.successful)
+            if (urls.length > 0) {
+              setImages((prev) => [...prev, ...urls])
+            }
+            setShowUpload(false)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

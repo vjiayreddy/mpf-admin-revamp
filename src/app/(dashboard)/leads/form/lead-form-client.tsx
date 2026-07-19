@@ -33,6 +33,7 @@ import {
 } from "@/lib/apollo/queries/leads"
 import { splitPhoneForApi } from "@/lib/customers/create-customer-schema"
 import { timestampToDateInput } from "@/lib/leads/format"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 import { isValidPhoneNumber } from "react-phone-number-input"
 
@@ -331,14 +332,18 @@ export function LeadFormClient() {
     try {
       const result = await saveLead({ variables: { body } })
       if (!result.data?.saveLead?._id) {
-        setSubmitError("Save did not return a confirmation.")
+        const msg = "Save did not return a confirmation."
+        setSubmitError(msg)
+        notify.error(msg)
         return
       }
+      notify.success(isEdit ? "Lead updated" : "Lead saved")
       router.push("/leads")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to save lead"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to save lead")
     }
   })
 

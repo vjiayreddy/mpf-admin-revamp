@@ -31,6 +31,7 @@ import {
   type UpdateTicketTechFieldsData,
   type UpdateTicketTechFieldsVars,
 } from "@/lib/apollo/queries/tickets"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const createSchema = z.object({
@@ -119,7 +120,9 @@ export function CreateTicketDialog({
       })
       const createdId = result.data?.createTicket?._id
       if (!createdId) {
-        setSubmitError("Ticket was created but no id was returned.")
+        const msg = "Ticket was created but no id was returned."
+        setSubmitError(msg)
+        notify.error(msg)
         return
       }
 
@@ -134,12 +137,14 @@ export function CreateTicketDialog({
         })
       }
 
+      notify.success("Ticket created")
       onCreated?.()
       onOpenChange(false)
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to create ticket"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to create ticket")
     }
   })
 

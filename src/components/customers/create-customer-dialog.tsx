@@ -31,6 +31,7 @@ import {
   splitPhoneForApi,
   type CreateCustomerFormValues,
 } from "@/lib/customers/create-customer-schema"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 function stylistIdFromTeamsJson(teamsJson: string | null | undefined): string {
@@ -129,14 +130,19 @@ export function CreateCustomerDialog({
 
       const userId = result.data?.createUserForCIF?.userId
       if (!userId) {
-        setSubmitError("User was created but no user id was returned.")
+        const msg = "User was created but no user id was returned."
+        setSubmitError(msg)
+        notify.error(msg)
         return
       }
 
+      notify.success("Customer created")
       onCreated?.(userId)
       handleClose()
     } catch {
-      setSubmitError("Failed to create customer. Please try again.")
+      const msg = "Failed to create customer. Please try again."
+      setSubmitError(msg)
+      notify.error(msg)
     }
   })
 

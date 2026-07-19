@@ -40,6 +40,7 @@ import {
   buildSaveStoreOrderParams,
   type OrderEventFormValues,
 } from "@/lib/track-orders/build-save-payload"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const selectClass = cn(
@@ -192,10 +193,12 @@ export function OrderEventSheet({
       }
       onOpenChange(false)
       await onSaved?.(patch)
+      notify.success("Order saved")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to save order"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to save order")
     }
   }
 

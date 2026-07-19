@@ -212,35 +212,40 @@ export function TrialAssetsForm({
         </div>
       </div>
 
-      <UppyFileUpload
-        open={uploadOpen}
-        uploadPath={TRIAL_IMAGE_UPLOAD_PATH}
-        maxNumberOfFiles={uploadKind === "images" ? 8 : 1}
-        allowedFileTypes={
-          uploadKind === "video"
-            ? [".mp4", ".mov", ".webm"]
-            : [".png", ".jpg", ".jpeg", ".webp"]
-        }
-        onClose={() => setUploadOpen(false)}
-        onCompleted={(result) => {
-          const urls = uploadUrlsFromResult(result.successful)
-          setUploadOpen(false)
-          if (!urls.length) return
-          setDraft((d) => {
-            if (!d) return d
-            if (uploadKind === "images") {
-              return {
-                ...d,
-                trialImageLinks: [...(d.trialImageLinks ?? []), ...urls],
+      {uploadOpen ? (
+        <UppyFileUpload
+          open
+          uppyId={`trial-assets-${uploadKind}`}
+          uploadPath={TRIAL_IMAGE_UPLOAD_PATH}
+          maxNumberOfFiles={uploadKind === "images" ? 8 : 1}
+          enableImageEditor={uploadKind !== "video"}
+          enableCompressor={uploadKind !== "video"}
+          allowedFileTypes={
+            uploadKind === "video"
+              ? [".mp4", ".mov", ".webm"]
+              : [".png", ".jpg", ".jpeg", ".webp"]
+          }
+          onClose={() => setUploadOpen(false)}
+          onCompleted={(result) => {
+            const urls = uploadUrlsFromResult(result.successful)
+            setUploadOpen(false)
+            if (!urls.length) return
+            setDraft((d) => {
+              if (!d) return d
+              if (uploadKind === "images") {
+                return {
+                  ...d,
+                  trialImageLinks: [...(d.trialImageLinks ?? []), ...urls],
+                }
               }
-            }
-            if (uploadKind === "fabric") {
-              return { ...d, fabricImageLink: urls[0] }
-            }
-            return { ...d, trialVideoLink: urls[0] }
-          })
-        }}
-      />
+              if (uploadKind === "fabric") {
+                return { ...d, fabricImageLink: urls[0] }
+              }
+              return { ...d, trialVideoLink: urls[0] }
+            })
+          }}
+        />
+      ) : null}
     </div>
   )
 }

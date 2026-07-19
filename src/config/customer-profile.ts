@@ -7,6 +7,7 @@ import {
   Ruler,
   Scissors,
   Shirt,
+  Table2,
   UsersRound,
 } from "lucide-react"
 
@@ -38,8 +39,13 @@ export type CustomerModuleShortcut = {
 export const CUSTOMER_MODULE_SHORTCUTS: CustomerModuleShortcut[] = [
   {
     title: "Measurements",
-    href: (userId) => `/measurements?userId=${userId}`,
+    href: (userId) => `/customers/${userId}/measurements`,
     icon: Ruler,
+  },
+  {
+    title: "Standard sizing",
+    href: (userId) => `/customers/${userId}/measurements?tab=sizing`,
+    icon: Table2,
   },
   {
     title: "Orders",

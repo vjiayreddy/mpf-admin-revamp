@@ -27,6 +27,7 @@ import {
   formatAmount,
   timestampToDateInput,
 } from "@/lib/invoice/format"
+import { notify } from "@/lib/notify"
 
 type FormState = {
   invoiceId: string
@@ -189,6 +190,7 @@ export function InvoiceFormClient() {
     const invoiceDate = dateInputToMpfFilter(form.invoiceDate)
     if (!invoiceDate) {
       setSaveError("Invoice date is required.")
+      notify.warning("Invoice date is required.")
       return
     }
 
@@ -235,9 +237,12 @@ export function InvoiceFormClient() {
           },
         },
       })
+      notify.success("Invoice updated")
       router.push("/invoice")
     } catch {
-      setSaveError("Failed to save invoice. Try again.")
+      const msg = "Failed to save invoice. Try again."
+      setSaveError(msg)
+      notify.error(msg)
     }
   }
 
@@ -252,8 +257,11 @@ export function InvoiceFormClient() {
       })
       setDeletingItem(null)
       reload()
+      notify.success("Invoice item deleted")
     } catch {
-      setSaveError("Failed to delete item.")
+      const msg = "Failed to delete item."
+      setSaveError(msg)
+      notify.error(msg)
     }
   }
 

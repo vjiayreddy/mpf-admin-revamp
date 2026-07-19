@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { CIF_STATUS_OPTIONS } from "@/config/cif-filters"
 import { useAllStudios } from "@/hooks/use-all-studios"
 import { useAllStylists } from "@/hooks/use-all-stylists"
+import { notify } from "@/lib/notify"
 import {
   GET_SINGLE_CIF,
   SAVE_CIF,
@@ -223,15 +224,17 @@ export function CifFormClient() {
         },
       })
       const savedId = result.data?.saveCustomerInformationForm?._id
+      notify.success(isEdit ? "CIF form updated" : "CIF form saved")
       if (savedId) {
         router.push(`/cif/form?cifId=${savedId}`)
         return
       }
       router.push("/cif")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to save CIF form"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to save CIF form")
     }
   })
 

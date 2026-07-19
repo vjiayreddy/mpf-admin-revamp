@@ -1,31 +1,37 @@
 "use client"
 
-import { useSearchParams } from "next/navigation"
+import { useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
 
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
-
-function MeasurementFormPlaceholder() {
+function MeasurementFormRedirect() {
+  const router = useRouter()
   const searchParams = useSearchParams()
-  const userId = searchParams.get("userId")?.trim() || null
-  const catId = searchParams.get("catId")?.trim() || null
+  const userId = searchParams.get("userId")?.trim()
+  const catId = searchParams.get("catId")?.trim()
 
-  const details = [
-    userId ? `Customer: ${userId}` : null,
-    catId ? `Category: ${catId}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ")
+  useEffect(() => {
+    if (!userId) return
+    const params = new URLSearchParams({ tab: "form" })
+    if (catId) params.set("catId", catId)
+    router.replace(`/customers/${userId}/measurements?${params.toString()}`)
+  }, [userId, catId, router])
+
+  if (!userId) {
+    return (
+      <div className="bg-card rounded-lg border p-6 text-sm">
+        <p className="font-medium">Missing userId</p>
+        <p className="text-muted-foreground mt-1">
+          Open measurements from a customer profile or the measurements list.
+        </p>
+      </div>
+    )
+  }
 
   return (
-    <PlaceholderPage
-      title="Customer Measurements"
-      description={
-        details
-          ? `${details}. Full measurement form migration comes next.`
-          : "Open this page with a userId (and optional catId) to edit customer measurements. Form migration comes next."
-      }
-    />
+    <div className="text-muted-foreground text-sm">
+      Opening measurement form…
+    </div>
   )
 }
 
@@ -33,12 +39,10 @@ export default function MeasurementFormPage() {
   return (
     <Suspense
       fallback={
-        <div className="text-muted-foreground text-sm">
-          Loading measurement form…
-        </div>
+        <div className="text-muted-foreground text-sm">Loading form…</div>
       }
     >
-      <MeasurementFormPlaceholder />
+      <MeasurementFormRedirect />
     </Suspense>
   )
 }

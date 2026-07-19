@@ -1,0 +1,180 @@
+import {
+  waistcoatChestReady,
+  waistcoat_below_chest_ready,
+  waistcoat_belt_length,
+  waistcoat_length_for_double_breasted,
+  waistcoat_seat_ready,
+  waistcoat_waist_ready,
+} from "../legacy-internal-formulas"
+
+import { MEASUREMENT_CATEGORIES } from "@/config/measurement-categories"
+import type { MeasurementGarmentSchema } from "../field-types"
+
+/** Port of legacy waistcoatsMeasurements. */
+export const waistcoatSchema: MeasurementGarmentSchema = {
+  catId: MEASUREMENT_CATEGORIES.WAISTCOAT,
+  subCat: "waistcoat",
+  options: [
+    [
+      {
+        label: "Waistcoat Shoulder",
+        name: "waistcoat_shoulder",
+        role: "personal_stylist",
+        isRequired: true,
+        canBeEdited: true,
+      },
+      {
+        label: "Waistcoat Neck",
+        name: "waistcoat_neck",
+        role: "personal_stylist",
+        isRequired: true,
+        canBeEdited: true,
+      },
+      {
+        label: "Waistcoat Cross back",
+        name: "waistcoat_cross_back",
+        role: "personal_stylist",
+        isRequired: false,
+        canBeEdited: true,
+      },
+      {
+        label: "Waistcoat Cross Chest",
+        name: "waistcoat_cross_chest",
+        role: "personal_stylist",
+        isRequired: false,
+        canBeEdited: true,
+      },
+    ],
+    [
+      {
+        label: "Waistcoat Chest Body",
+        name: "waistcoat_chest_body",
+        role: "personal_stylist",
+        isRequired: true,
+        canBeEdited: true,
+        internalFormula: [waistcoatChestReady],
+      },
+      {
+        label: "Waistcoat Chest Loosening",
+        name: "waistcoat_chest_loosening",
+        role: "personal_stylist",
+        isRequired: false,
+        canBeEdited: true,
+        defaultInch: 1,
+        internalFormula: [waistcoatChestReady],
+      },
+      {
+        label: "Waistcoat Chest Ready",
+        name: "waistcoat_chest_ready",
+        role: "personal_stylist",
+        isRequired: false,
+        canBeEdited: false,
+        formula: waistcoatChestReady,
+      },
+    ],
+    [
+      {
+        label: "Waistcoat Below Chest",
+        name: "waistcoat_below_chest",
+        role: "personal_stylist",
+        isRequired: true,
+        canBeEdited: true,
+        internalFormula: [waistcoat_below_chest_ready],
+      },
+      {
+        label: "Waistcoat Below Chest Loosening",
+        name: "waistcoat_below_chest_loosening",
+        role: "personal_stylis",
+        isRequired: false,
+        canBeEdited: true,
+        internalFormula: [waistcoat_below_chest_ready],
+      },
+      {
+        label: "Waistcoat Below Chest Ready",
+        name: "waistcoat_below_chest_ready",
+        role: "personal_stylis",
+        isRequired: false,
+        canBeEdited: false,
+        formula: waistcoat_below_chest_ready,
+      },
+    ],
+    [
+      {
+        label: "Waistcoat Waist Body",
+        name: "waistcoat_waist_body",
+        role: "personal_stylist",
+        isRequired: true,
+        canBeEdited: true,
+        internalFormula: [waistcoat_waist_ready],
+      },
+      {
+        label: "Waistcoat Waist Loosening",
+        name: "waistcoat_waist_loosening",
+        role: "personal_stylist",
+        isRequired: false,
+        canBeEdited: true,
+        defaultInch: 1,
+        internalFormula: [waistcoat_waist_ready],
+      },
+      {
+        label: "Waistcoat Waist Ready",
+        name: "waistcoat_waist_ready",
+        role: "personal_stylist",
+        isRequired: false,
+        canBeEdited: false,
+        formula: waistcoat_waist_ready,
+      },
+    ],
+    [
+      {
+        label: "Waistcoat Seat Body",
+        name: "waistcoat_seat_body",
+        role: "personal_stylist",
+        isRequired: false,
+        canBeEdited: true,
+        internalFormula: [waistcoat_seat_ready],
+      },
+      {
+        label: "Waistcoat Seat Loosening",
+        name: "waistcoat_seat_loosening",
+        role: "personal_stylist",
+        isRequired: false,
+        canBeEdited: true,
+        defaultInch: 1,
+        internalFormula: [waistcoat_seat_ready],
+      },
+      {
+        label: "Waistcoat Seat Ready",
+        name: "waistcoat_seat_ready",
+        role: "personal_stylist",
+        isRequired: false,
+        canBeEdited: false,
+        formula: waistcoat_seat_ready,
+      },
+    ],
+    [
+      {
+        label: "Waistcoat Overall Pointed Length",
+        name: "waistcoat_overall_pointed_length",
+        role: "personal_stylist",
+        isRequired: true,
+        canBeEdited: true,
+        internalFormula: [waistcoat_length_for_double_breasted, waistcoat_belt_length],
+      },
+      {
+        label: "Waistcoat Belt Length",
+        name: "waistcoat_belt_length",
+        role: "personal_stylist",
+        isRequired: true,
+        canBeEdited: true,
+      },
+      {
+        label: "Waistcoat Length For Double Breasted",
+        name: "waistcoat_length_for_double_breasted",
+        role: "personal_stylist",
+        isRequired: false,
+        canBeEdited: true,
+      },
+    ],
+  ],
+}

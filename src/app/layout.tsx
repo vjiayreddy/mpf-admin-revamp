@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { NetworkStatusUi } from "@/components/network/network-status-ui"
 import { NetworkStatusProvider } from "@/components/providers/network-status-provider"
 import { ThemeProvider } from "@/components/providers/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ApolloAppProvider } from "@/lib/apollo/apollo-provider"
 
@@ -50,6 +51,7 @@ export default function RootLayout({
               <TooltipProvider>
                 <NetworkStatusUi />
                 {children}
+                <Toaster />
               </TooltipProvider>
             </ApolloAppProvider>
           </NetworkStatusProvider>

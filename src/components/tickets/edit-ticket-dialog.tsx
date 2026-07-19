@@ -26,6 +26,7 @@ import {
   type UpdateTicketTechFieldsData,
   type UpdateTicketTechFieldsVars,
 } from "@/lib/apollo/queries/tickets"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const editSchema = z.object({
@@ -100,7 +101,9 @@ export function EditTicketDialog({
         },
       })
       if (!result.data?.updateTicketTechFields?._id) {
-        setSubmitError("Update did not return a confirmation.")
+        const msg = "Update did not return a confirmation."
+        setSubmitError(msg)
+        notify.error(msg)
         return
       }
       onUpdated?.({
@@ -108,10 +111,12 @@ export function EditTicketDialog({
         dueDate: dueDateIso,
       })
       onOpenChange(false)
+      notify.success("Ticket updated")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to update ticket"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to update ticket")
     }
   })
 

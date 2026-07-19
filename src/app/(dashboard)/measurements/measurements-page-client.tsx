@@ -116,7 +116,7 @@ export function MeasurementsPageClient() {
 
   const openMeasurementsForm = useCallback(
     (userId: string) => {
-      router.push(`/measurements/form?userId=${encodeURIComponent(userId)}`)
+      router.push(`/customers/${userId}/measurements`)
     },
     [router]
   )

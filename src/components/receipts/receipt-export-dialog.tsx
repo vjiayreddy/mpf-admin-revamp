@@ -33,6 +33,7 @@ import {
 } from "@/lib/apollo/queries/receipts"
 import { buildReceiptsQueryVars } from "@/lib/receipts/build-receipts-filter"
 import { formatReceiptDate } from "@/lib/receipts/format"
+import { notify } from "@/lib/notify"
 
 type ExportStep = "reason" | "otp" | "download"
 
@@ -102,7 +103,9 @@ export function ReceiptExportDialog({
       })
       const payments = result.data?.getStoreOrderPayments?.payments ?? []
       if (payments.length === 0) {
-        setError("No payments found for the selected filters.")
+        const msg = "No payments found for the selected filters."
+        setError(msg)
+        notify.warning(msg)
         return
       }
 
@@ -125,13 +128,15 @@ export function ReceiptExportDialog({
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1")
       XLSX.writeFile(workbook, fileName)
+      notify.success("Receipts exported")
       onOpenChange(false)
     } catch (err) {
-      setError(
+      const msg =
         err instanceof Error
           ? err.message
           : "Failed to export payments. Try again."
-      )
+      setError(msg)
+      notify.fromError(err, "Failed to export payments. Try again.")
     }
   }
 
@@ -161,10 +166,12 @@ export function ReceiptExportDialog({
       }
       setDownloadHistoryId(id)
       setStep("otp")
+      notify.success("OTP sent")
     } catch (err) {
-      setError(
+      const msg =
         err instanceof Error ? err.message : "Failed to send OTP."
-      )
+      setError(msg)
+      notify.fromError(err, "Failed to send OTP.")
     }
   })
 
@@ -186,10 +193,12 @@ export function ReceiptExportDialog({
         },
       })
       setStep("download")
+      notify.success("OTP verified")
     } catch (err) {
-      setError(
+      const msg =
         err instanceof Error ? err.message : "OTP verification failed."
-      )
+      setError(msg)
+      notify.fromError(err, "OTP verification failed.")
     }
   })
 

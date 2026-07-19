@@ -29,6 +29,7 @@ import {
   type UpdateStoreOrderAttributesVars,
 } from "@/lib/apollo/queries/store-orders"
 import { customerFullName } from "@/lib/track-orders/format"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const selectClass = cn(
@@ -120,10 +121,12 @@ export function OrderAttributesDialog({
         isGroupCreated: values.isGroupCreated,
       })
       onOpenChange(false)
+      notify.success("Order details updated")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to update order"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to update order")
     }
   })
 

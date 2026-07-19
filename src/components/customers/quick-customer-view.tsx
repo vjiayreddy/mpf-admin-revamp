@@ -49,6 +49,7 @@ import { buildQuickUpdatePayload } from "@/lib/customers/quick-update-payload"
 import { isoToDateInput } from "@/lib/customers/date-filter"
 import type { CustomerListRow } from "@/lib/apollo/queries/users"
 import type { StylistOption } from "@/lib/apollo/queries/stylists"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 function formatDate(value?: string | null) {
@@ -250,9 +251,12 @@ export function QuickCustomerView({
         },
       })
       onUpdated?.(userId, buildListRowPatch(values, stylists, user))
+      notify.success("Customer updated")
       onOpenChange(false)
     } catch {
-      setSubmitError("Failed to update customer. Please try again.")
+      const msg = "Failed to update customer. Please try again."
+      setSubmitError(msg)
+      notify.error(msg)
     }
   })
 
