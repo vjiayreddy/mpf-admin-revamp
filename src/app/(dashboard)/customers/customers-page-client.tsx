@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useMemo, useState } from "react"
+import Link from "next/link"
 import type {
   CellClassParams,
   ColDef,
@@ -74,6 +75,20 @@ function StatusCell({ value }: ICellRendererParams<CustomerListRow, string>) {
   )
 }
 
+function CustomerSrNoCell(params: ICellRendererParams<CustomerListRow>) {
+  const { data } = params
+  if (!data?._id) return params.value ?? "—"
+  return (
+    <Link
+      href={`/customers/${data._id}`}
+      className="text-primary font-medium hover:underline"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {data.customerSrNo ?? "Profile"}
+    </Link>
+  )
+}
+
 export function CustomersPageClient() {
   const {
     rows,
@@ -143,6 +158,7 @@ export function CustomersPageClient() {
         maxWidth: 110,
         pinned: "left",
         lockPinned: true,
+        cellRenderer: CustomerSrNoCell,
       },
       {
         colId: "registeredDate",
