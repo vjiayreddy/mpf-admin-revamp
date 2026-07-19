@@ -24,6 +24,7 @@ import {
   type SaveRoleData,
   type SaveRoleVars,
 } from "@/lib/apollo/queries/roles"
+import { notify } from "@/lib/notify"
 
 const schema = z.object({
   label: z.string().trim().min(1, "Full name is required"),
@@ -77,10 +78,12 @@ export function CreateRoleDialog({
       })
       onOpenChange(false)
       onCreated?.()
+      notify.success("Role created")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to create role"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to create role")
     }
   })
 

@@ -13,7 +13,6 @@ export function NetworkStatusUi() {
     isOnline,
     quality,
     showGlobalProgress,
-    inFlightCount,
     lastRequestMs,
     effectiveType,
     rtt,
@@ -89,28 +88,30 @@ export function NetworkStatusUi() {
       {showSlow ? (
         <div
           className={cn(
-            "bg-amber-500 text-amber-950 fixed right-0 left-0 z-[90] flex items-center justify-center gap-2 px-3 py-1.5 text-xs sm:text-sm",
-            showOfflineBanner ? "top-10" : "top-0"
+            "bg-amber-500 text-amber-950 fixed right-3 z-[90] flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] leading-tight shadow-sm sm:text-[11px]",
+            showOfflineBanner ? "top-12" : "top-2"
           )}
           role="status"
           aria-live="polite"
         >
-          <span className="min-w-0 flex-1 text-center sm:flex-none">
-            Slow network detected
-            {effectiveType ? ` (${effectiveType})` : ""}
-            {rtt != null ? ` · RTT ~${Math.round(rtt)}ms` : ""}
-            {lastRequestMs != null && lastRequestMs >= 1500
-              ? ` · last API ${Math.round(lastRequestMs)}ms`
-              : ""}
-            {inFlightCount > 0 ? " · working…" : ""}
+          <span>
+            {[
+              effectiveType?.toUpperCase(),
+              rtt != null ? `${Math.round(rtt)}ms` : null,
+              lastRequestMs != null && lastRequestMs >= 1500
+                ? `API ${(lastRequestMs / 1000).toFixed(1)}s`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
           <button
             type="button"
-            className="hover:bg-amber-950/10 inline-flex size-7 shrink-0 items-center justify-center rounded-md"
+            className="hover:bg-amber-950/10 inline-flex size-4 shrink-0 items-center justify-center rounded"
             aria-label="Dismiss slow network warning"
             onClick={() => setDismissedSlowKey(slowEpisodeKey)}
           >
-            <XIcon className="size-4" />
+            <XIcon className="size-3" />
           </button>
         </div>
       ) : null}

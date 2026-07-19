@@ -131,11 +131,14 @@ export function CustomerProfilePageClient() {
         </>
       ) : null}
 
-      {user ? (
+      {user && uploadOpen ? (
         <UppyFileUpload
-          open={uploadOpen}
+          open
+          uppyId={`profile-image-${userId}`}
           uploadPath={`${PROFILE_IMAGE_UPLOAD_PATH}/${userId}`}
           maxNumberOfFiles={1}
+          enableImageEditor={false}
+          enableCompressor={false}
           allowedFileTypes={[...PRODUCT_IMAGE_ALLOWED_TYPES]}
           onClose={() => setUploadOpen(false)}
           onCompleted={(result) => {

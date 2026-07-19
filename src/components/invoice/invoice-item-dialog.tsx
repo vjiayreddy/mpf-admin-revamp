@@ -24,6 +24,7 @@ import {
   type InvoiceItem,
   type UpdateOrderInvoiceItemVars,
 } from "@/lib/apollo/queries/invoice"
+import { notify } from "@/lib/notify"
 
 type InvoiceItemDialogProps = {
   open: boolean
@@ -123,10 +124,12 @@ export function InvoiceItemDialog({
     setFormError(null)
     if (!name.trim()) {
       setFormError("Name is required.")
+      notify.warning("Name is required.")
       return
     }
     if (!hsnCode.trim()) {
       setFormError("HSN code is required.")
+      notify.warning("HSN code is required.")
       return
     }
 
@@ -156,8 +159,11 @@ export function InvoiceItemDialog({
       }
       onSaved()
       onOpenChange(false)
+      notify.success(item?._id ? "Invoice item updated" : "Invoice item added")
     } catch {
-      setFormError("Failed to save item. Try again.")
+      const msg = "Failed to save item. Try again."
+      setFormError(msg)
+      notify.error(msg)
     }
   }
 

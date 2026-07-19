@@ -29,6 +29,7 @@ import {
   type RoleListRow,
   type RoleResource,
 } from "@/lib/apollo/queries/roles"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 type ResourcePermState = {
@@ -178,10 +179,12 @@ export function RolePermissionsDialog({
       })
       onOpenChange(false)
       onSaved?.()
+      notify.success("Permissions updated")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to update permissions"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to update permissions")
     }
   }
 

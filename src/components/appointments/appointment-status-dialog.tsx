@@ -29,6 +29,7 @@ import {
   type UpdateAppointmentStatusData,
   type UpdateAppointmentStatusVars,
 } from "@/lib/apollo/queries/appointments"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const statusSchema = z
@@ -167,7 +168,9 @@ export function AppointmentStatusDialog({
       const result = await updateStatus({ variables })
       const updatedId = result.data?.updateAppointmentStatus?._id
       if (!updatedId) {
-        setSubmitError("Status update did not return a confirmation.")
+        const msg = "Status update did not return a confirmation."
+        setSubmitError(msg)
+        notify.error(msg)
         return
       }
       onUpdated?.({
@@ -195,8 +198,11 @@ export function AppointmentStatusDialog({
           : {}),
       })
       onOpenChange(false)
+      notify.success("Appointment status updated")
     } catch (err) {
-      setSubmitError(apolloErrorMessage(err))
+      const msg = apolloErrorMessage(err)
+      setSubmitError(msg)
+      notify.error(msg)
     }
   })
 

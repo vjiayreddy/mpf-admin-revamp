@@ -37,6 +37,7 @@ import {
 import { customerFullName, formatStoreOrderDate } from "@/lib/track-orders/format"
 import { buildQuickUpdatePayload } from "@/lib/trial/build-trial-payload"
 import { openTrialWhatsAppShare } from "@/lib/trial/whatsapp-share"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const selectClass = cn(
@@ -267,6 +268,7 @@ export function QuickTrialView({
 
     if (!orderId) {
       setSubmitError("Missing order id for this trial.")
+      notify.error("Missing order id for this trial.")
       return
     }
 
@@ -285,6 +287,7 @@ export function QuickTrialView({
           }),
         },
       })
+      notify.success("Trial updated")
       onUpdated?.({
         trialId: trialIdSnapshot,
         orderId,
@@ -292,9 +295,10 @@ export function QuickTrialView({
       })
       onOpenChange(false)
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to update trial"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to update trial")
     }
   }
 

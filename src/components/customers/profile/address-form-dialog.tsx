@@ -24,6 +24,7 @@ import {
   type SaveAddressVars,
 } from "@/lib/apollo/queries/customer-addresses"
 import { splitPhoneForApi } from "@/lib/customers/create-customer-schema"
+import { notify } from "@/lib/notify"
 import {
   addressFormDefaults,
   addressFormSchema,
@@ -126,8 +127,11 @@ export function AddressFormDialog({
       })
       onSaved()
       onOpenChange(false)
+      notify.success(isEdit ? "Address updated" : "Address saved")
     } catch {
-      setSubmitError("Failed to save address. Please try again.")
+      const msg = "Failed to save address. Please try again."
+      setSubmitError(msg)
+      notify.error(msg)
     }
   })
 

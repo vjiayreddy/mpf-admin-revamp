@@ -44,6 +44,7 @@ import {
   productsFromStoreOrder,
   type TrialFormValues,
 } from "@/lib/trial/build-trial-payload"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const selectClass = cn(
@@ -256,6 +257,7 @@ function TrialFormInner() {
 
     if (!resolvedOrderId) {
       setSubmitError("Missing order id")
+      notify.error("Missing order id")
       return
     }
 
@@ -268,7 +270,8 @@ function TrialFormInner() {
     })
 
     try {
-      if (trial?._id && trailIdParam) {
+      const isUpdate = Boolean(trial?._id && trailIdParam)
+      if (isUpdate) {
         await updateTrial({
           variables: {
             orderTrialId: trailIdParam,
@@ -280,11 +283,13 @@ function TrialFormInner() {
           variables: { orderTrial: payload },
         })
       }
+      notify.success(isUpdate ? "Trial updated" : "Trial saved")
       router.push("/trial")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to save trail"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to save trail")
     }
   }
 

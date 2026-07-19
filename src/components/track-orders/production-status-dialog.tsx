@@ -24,6 +24,7 @@ import {
   type UpdateStoreOrderProductionStatusData,
   type UpdateStoreOrderProductionStatusVars,
 } from "@/lib/apollo/queries/store-orders"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const selectClass = cn(
@@ -127,10 +128,12 @@ export function ProductionStatusDialog({
         })
       }
       onOpenChange(false)
+      notify.success("Production status updated")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to update production status"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to update production status")
     }
   })
 

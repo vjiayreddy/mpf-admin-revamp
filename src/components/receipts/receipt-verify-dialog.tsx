@@ -28,6 +28,7 @@ import {
 } from "@/lib/apollo/queries/receipts"
 import { isoToDateInput } from "@/lib/customers/date-filter"
 import { paymentDateInputToMpfFilter } from "@/lib/receipts/format"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const selectClass = cn(
@@ -92,7 +93,9 @@ export function ReceiptVerifyDialog({
 
   const onSubmit = handleSubmit(async (values) => {
     if (!payment?.orderId || !payment.paymentId) {
-      setSubmitError("Missing order or payment id.")
+      const msg = "Missing order or payment id."
+      setSubmitError(msg)
+      notify.error(msg)
       return
     }
     if (!canSubmit) return
@@ -134,10 +137,12 @@ export function ReceiptVerifyDialog({
           : {}),
       })
       onOpenChange(false)
+      notify.success("Payment verified")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to verify payment."
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to verify payment.")
     }
   })
 

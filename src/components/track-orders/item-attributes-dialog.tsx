@@ -28,6 +28,7 @@ import {
   type UpdateStoreOrderItemAttributesData,
   type UpdateStoreOrderItemAttributesVars,
 } from "@/lib/apollo/queries/store-orders"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const selectClass = cn(
@@ -145,10 +146,12 @@ export function ItemAttributesDialog({
         },
       })
       onOpenChange(false)
+      notify.success("Item details updated")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to update item"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to update item")
     }
   })
 

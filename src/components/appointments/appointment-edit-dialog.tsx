@@ -32,6 +32,7 @@ import {
   type SaveLeadAppointmentData,
   type SaveLeadAppointmentVars,
 } from "@/lib/apollo/queries/appointments"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const editSchema = z.object({
@@ -184,7 +185,9 @@ export function AppointmentEditDialog({
         },
       })
       if (!result.data?.saveLeadAppointment?._id) {
-        setSubmitError("Appointment update did not return a confirmation.")
+        const msg = "Appointment update did not return a confirmation."
+        setSubmitError(msg)
+        notify.error(msg)
         return
       }
 
@@ -202,10 +205,12 @@ export function AppointmentEditDialog({
           : appointment.stylist,
       })
       onOpenChange(false)
+      notify.success("Appointment updated")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to update appointment"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to update appointment")
     }
   })
 

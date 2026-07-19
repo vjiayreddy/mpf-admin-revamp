@@ -41,6 +41,7 @@ import {
   type UpdateLeadStatusVars,
 } from "@/lib/apollo/queries/leads"
 import { latestStatus } from "@/lib/leads/format"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const statusSchema = z
@@ -205,17 +206,21 @@ export function LeadStatusDialog({
       )
       setUnlinkingOrderId(null)
       setOtp("")
+      notify.success("Order unlinked")
     } catch (err) {
-      setUnlinkError(
+      const msg =
         err instanceof Error ? err.message : "Failed to unlink order"
-      )
+      setUnlinkError(msg)
+      notify.fromError(err, "Failed to unlink order")
     }
   }
 
   const onSubmit = handleSubmit(async (values) => {
     if (!lead?._id) return
     if (hasLinkedOrders) {
-      setSubmitError("Unlink all linked orders before updating status.")
+      const msg = "Unlink all linked orders before updating status."
+      setSubmitError(msg)
+      notify.warning(msg)
       return
     }
     setSubmitError(null)
@@ -241,7 +246,9 @@ export function LeadStatusDialog({
 
       if (values.status === "order_closed" && values.orderId?.trim()) {
         if (!lead.userId) {
-          setSubmitError("Lead is missing userId; cannot link order.")
+          const msg = "Lead is missing userId; cannot link order."
+          setSubmitError(msg)
+          notify.error(msg)
           return
         }
         await linkLead({
@@ -258,10 +265,12 @@ export function LeadStatusDialog({
 
       onSaved()
       onOpenChange(false)
+      notify.success("Lead status updated")
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to update lead status"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to update lead status")
     }
   })
 

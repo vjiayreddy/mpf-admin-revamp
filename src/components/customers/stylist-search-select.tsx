@@ -70,6 +70,7 @@ export function StylistSearchSelect({
       >
         <PopoverTrigger
           id={id}
+          type="button"
           aria-label={label || "Select stylist"}
           disabled={disabled || loading}
           className={cn(

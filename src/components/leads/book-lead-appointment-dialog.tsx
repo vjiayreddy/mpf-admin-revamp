@@ -31,6 +31,7 @@ import {
 } from "@/lib/apollo/queries/appointments"
 import type { LeadListRow } from "@/lib/apollo/queries/leads"
 import { customerFullName } from "@/lib/leads/format"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 const bookSchema = z.object({
@@ -105,7 +106,9 @@ export function BookLeadAppointmentDialog({
   const onSubmit = handleSubmit(async (values) => {
     if (!lead?._id) return
     if (!lead.userId) {
-      setSubmitError("Lead is missing userId; cannot book appointment.")
+      const msg = "Lead is missing userId; cannot book appointment."
+      setSubmitError(msg)
+      notify.error(msg)
       return
     }
     setSubmitError(null)
@@ -130,15 +133,19 @@ export function BookLeadAppointmentDialog({
         },
       })
       if (!result.data?.saveLeadAppointment?._id) {
-        setSubmitError("Appointment save did not return a confirmation.")
+        const msg = "Appointment save did not return a confirmation."
+        setSubmitError(msg)
+        notify.error(msg)
         return
       }
+      notify.success("Appointment booked")
       onSaved()
       onOpenChange(false)
     } catch (err) {
-      setSubmitError(
+      const msg =
         err instanceof Error ? err.message : "Failed to book appointment"
-      )
+      setSubmitError(msg)
+      notify.fromError(err, "Failed to book appointment")
     }
   })
 

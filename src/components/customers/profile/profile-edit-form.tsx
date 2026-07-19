@@ -28,6 +28,7 @@ import {
 } from "@/config/customer-filters"
 import { useAllStylists } from "@/hooks/use-all-stylists"
 import type { CustomerProfileUser } from "@/lib/apollo/queries/get-user"
+import { notify } from "@/lib/notify"
 import {
   UPDATE_USER_PROFILE,
   type UpdateUserProfileData,
@@ -149,9 +150,12 @@ export function ProfileEditForm({ user, onSaved }: ProfileEditFormProps) {
           updateData: buildFullUpdatePayload(values),
         },
       })
+      notify.success("Profile updated")
       onSaved?.()
     } catch {
-      setSubmitError("Failed to update profile. Please try again.")
+      const msg = "Failed to update profile. Please try again."
+      setSubmitError(msg)
+      notify.error(msg)
     }
   })
 

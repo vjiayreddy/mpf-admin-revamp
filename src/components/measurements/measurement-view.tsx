@@ -276,15 +276,14 @@ export function MeasurementView({
   )
 }
 
-/** Open customer measurement edit page (placeholder route until form ships). */
+/** Open customer measurement edit form (hub Measurements tab). */
 export function openMeasurementEdit(userId: string, catId: string) {
   const params = new URLSearchParams({
-    userId,
+    tab: "form",
     catId,
-    tabIndex: "2",
   })
   window.open(
-    `/measurements/form?${params.toString()}`,
+    `/customers/${userId}/measurements?${params.toString()}`,
     "_blank",
     "noopener,noreferrer"
   )
