@@ -2,6 +2,7 @@ import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 
 import { auth } from "@/lib/auth"
+import { captureServerEvent } from "@/lib/posthog/server"
 import {
   getLoginSessionById,
   revokeLoginSession,
@@ -60,6 +61,18 @@ export async function DELETE(_request: Request, context: RouteContext) {
   if (!deleted) {
     return NextResponse.json({ error: "Failed to revoke session" }, { status: 500 })
   }
+
+  await captureServerEvent({
+    distinctId: session.user.id,
+    event: "session_force_logout",
+    properties: {
+      revokedSessionId: id,
+      revokedUserId: existing.userId,
+      revokedUserEmail: existing.userEmail,
+      isCurrent,
+      actorEmail: session.user.email,
+    },
+  })
 
   return NextResponse.json({
     ok: true,

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Scissors } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
+import { captureEvent, identifyUser } from "@/lib/posthog/client"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -45,9 +46,23 @@ export function LoginForm() {
       }
 
       const session = await authClient.getSession()
-      const sessionId = session.data?.user?.activeStylistSessionId
+      const user = session.data?.user
+      const sessionId = user?.activeStylistSessionId
       if (sessionId && typeof window !== "undefined") {
         window.localStorage.setItem("active_session_id", sessionId)
+      }
+
+      if (user?.id) {
+        identifyUser({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role ?? null,
+        })
+        captureEvent("user_logged_in", {
+          email: user.email,
+          role: user.role ?? undefined,
+        })
       }
 
       router.push("/")

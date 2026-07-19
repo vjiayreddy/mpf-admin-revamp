@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/sheet"
 import { signOutFully } from "@/lib/auth/sign-out"
 import type { HealthRunHistoryItem, HealthRunSummary } from "@/lib/health/types"
+import { captureEvent } from "@/lib/posthog/client"
 import type { LoginSessionRow } from "@/lib/sessions/list-sessions"
 import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
@@ -248,6 +249,12 @@ export function SystemMonitoringPageClient() {
         notify.error(data.error ?? "Failed to revoke session")
         return
       }
+
+      captureEvent("session_force_logout", {
+        revokedSessionId: selectedSession.id,
+        revokedUserEmail: selectedSession.userEmail,
+        isCurrent: Boolean(data.isCurrent),
+      })
 
       notify.success("Session revoked — logged out of that browser")
       setSessionDetailOpen(false)
