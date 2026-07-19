@@ -1,5 +1,17 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { Suspense } from "react"
+
+import { MeasurementsPageClient } from "./measurements-page-client"
 
 export default function MeasurementsPage() {
-  return <PlaceholderPage title="Measurements" />
+  return (
+    <Suspense
+      fallback={
+        <div className="text-muted-foreground text-sm">
+          Loading measurements…
+        </div>
+      }
+    >
+      <MeasurementsPageClient />
+    </Suspense>
+  )
 }

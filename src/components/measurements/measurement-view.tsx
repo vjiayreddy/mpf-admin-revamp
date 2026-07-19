@@ -283,5 +283,9 @@ export function openMeasurementEdit(userId: string, catId: string) {
     catId,
     tabIndex: "2",
   })
-  window.open(`/measurements?${params.toString()}`, "_blank", "noopener,noreferrer")
+  window.open(
+    `/measurements/form?${params.toString()}`,
+    "_blank",
+    "noopener,noreferrer"
+  )
 }
