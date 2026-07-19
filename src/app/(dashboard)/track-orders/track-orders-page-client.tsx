@@ -24,10 +24,16 @@ import {
   type ProductionStatusTarget,
 } from "@/components/track-orders/production-status-dialog"
 import {
+  MeasurementView,
+  openMeasurementEdit,
+  type MeasurementViewTarget,
+} from "@/components/measurements/measurement-view"
+import {
   StyleFormView,
   type StyleFormViewTarget,
 } from "@/components/track-orders/style-form-view"
 import { TrackOrdersFilterBar } from "@/components/track-orders/track-orders-filter-bar"
+import { resolveProductCatId } from "@/lib/track-orders/product-cat-id"
 import { DataGrid } from "@/components/data-grid/data-grid"
 import { DataGridPagination } from "@/components/data-grid/data-grid-pagination"
 import { Button } from "@/components/ui/button"
@@ -128,6 +134,10 @@ export function TrackOrdersPageClient() {
   const [styleFormTarget, setStyleFormTarget] =
     useState<StyleFormViewTarget | null>(null)
 
+  const [measurementOpen, setMeasurementOpen] = useState(false)
+  const [measurementTarget, setMeasurementTarget] =
+    useState<MeasurementViewTarget | null>(null)
+
   const [detailRefreshNonce, setDetailRefreshNonce] = useState(0)
   const [detailHeights, setDetailHeights] = useState<Record<string, number>>(
     {}
@@ -220,21 +230,49 @@ export function TrackOrdersPageClient() {
         setProductionOpen(true)
       },
       onItemAction: (action, orderId, orderNo, item) => {
-        if (action !== "stylingForm") return
         const order = list.rows.find((row) => row._id === orderId)
-        setStyleFormTarget({
-          orderId,
-          orderNo: orderNo ?? order?.orderNo,
-          customerId: order?.customerId,
-          customerName: customerFullName(
-            order?.customerFirstName,
-            order?.customerLastName
-          ),
-          stylistName: order?.stylist?.[0]?.name?.trim() || null,
-          orderDate: order?.orderDate,
-          item,
-        })
-        setStyleFormOpen(true)
+        if (action === "stylingForm") {
+          setStyleFormTarget({
+            orderId,
+            orderNo: orderNo ?? order?.orderNo,
+            customerId: order?.customerId,
+            customerName: customerFullName(
+              order?.customerFirstName,
+              order?.customerLastName
+            ),
+            stylistName: order?.stylist?.[0]?.name?.trim() || null,
+            orderDate: order?.orderDate,
+            item,
+          })
+          setStyleFormOpen(true)
+          return
+        }
+
+        const userId = order?.userId?.trim()
+        const catId = resolveProductCatId(item.itemName, item.itemCatId)
+        if (!userId || !catId) return
+
+        if (action === "measurementView") {
+          setMeasurementTarget({
+            userId,
+            catId,
+            orderId,
+            orderNo: orderNo ?? order?.orderNo,
+            customerId: order?.customerId,
+            customerName: customerFullName(
+              order?.customerFirstName,
+              order?.customerLastName
+            ),
+            itemName: item.itemName,
+            stylistName: order?.stylist?.[0]?.name?.trim() || null,
+          })
+          setMeasurementOpen(true)
+          return
+        }
+
+        if (action === "measurementEdit") {
+          openMeasurementEdit(userId, catId)
+        }
       },
     }),
     [detailRefreshNonce, list.rows, onDetailHeight]
@@ -590,6 +628,15 @@ export function TrackOrdersPageClient() {
         onOpenChange={(next) => {
           setStyleFormOpen(next)
           if (!next) setStyleFormTarget(null)
+        }}
+      />
+
+      <MeasurementView
+        open={measurementOpen}
+        target={measurementTarget}
+        onOpenChange={(next) => {
+          setMeasurementOpen(next)
+          if (!next) setMeasurementTarget(null)
         }}
       />
     </div>

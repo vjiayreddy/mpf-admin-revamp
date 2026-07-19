@@ -593,6 +593,7 @@ export function OrderItemsDetailPanel(params: OrderItemsDetailPanelProps) {
                       <td className="overflow-hidden px-1 py-1.5 align-middle">
                         <OrderItemRowActions
                           item={item}
+                          userId={userId}
                           onAction={(action, rowItem) => {
                             if (!orderId) return
                             context.onItemAction?.(

@@ -6,18 +6,46 @@ export type BodyProfilePictures = {
   backPicture?: string | null
 }
 
+/** Extended body profile fields used by Measurement View. */
+export type BodyProfileDetails = BodyProfilePictures & {
+  firstName?: string | null
+  lastName?: string | null
+  email?: string | null
+  phone?: string | null
+  countryCode?: string | null
+  height?: number | null
+  weight?: number | null
+  age?: number | null
+  shoulderTypeId?: string | null
+  bodyPostureId?: string | null
+  bodyShapeId?: string | null
+  fitPreferenceId?: string | null
+}
+
 export type GetBodyProfileData = {
-  getBodyProfile: BodyProfilePictures[] | null
+  getBodyProfile: BodyProfileDetails[] | null
 }
 
 export type GetBodyProfileVars = {
   userId: string
 }
 
-/** Slim body-profile fetch for client measurement photos. */
+/** Body-profile fetch — photos + basic attributes for measurement view. */
 export const GET_BODY_PROFILE = gql`
   query GetBodyProfile($userId: String!) {
     getBodyProfile(userId: $userId) {
+      firstName
+      lastName
+      email
+      phone
+      countryCode
+      height
+      weight
+      age
+      shoulderTypeId
+      bodyPostureId
+      bodyShapeId
+      fitPreferenceId
       frontPicture
       sidePicture
       backPicture
