@@ -129,6 +129,28 @@
   }
 }
 
+/* Trail products — auto-height body + vertically centered cells */
+.mpf-data-grid.mpf-trial-products-grid,
+.mpf-data-grid.mpf-trial-products-grid .ag-root-wrapper,
+.mpf-data-grid.mpf-trial-products-grid .ag-root-wrapper-body,
+.mpf-data-grid.mpf-trial-products-grid .ag-root,
+.mpf-data-grid.mpf-trial-products-grid .ag-body-viewport,
+.mpf-data-grid.mpf-trial-products-grid .ag-center-cols-viewport,
+.mpf-data-grid.mpf-trial-products-grid .ag-center-cols-container {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+.mpf-data-grid.mpf-trial-products-grid .ag-cell {
+  display: flex;
+  align-items: center;
+}
+.mpf-data-grid.mpf-trial-products-grid .ag-cell-wrapper {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
 /* Subtle AG Grid emphasis — no heavy badge UI */
 .mpf-data-grid .mpf-cell-overdue {
   font-weight: 600;

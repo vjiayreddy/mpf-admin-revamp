@@ -11,6 +11,7 @@ import type {
   ValueGetterParams,
 } from "ag-grid-community"
 import { ChevronRightIcon, ListFilterIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import { ItemAttributesDialog } from "@/components/track-orders/item-attributes-dialog"
 import { OrderAttributesDialog } from "@/components/track-orders/order-attributes-dialog"
@@ -37,6 +38,10 @@ import {
   StyleFormView,
   type StyleFormViewTarget,
 } from "@/components/track-orders/style-form-view"
+import {
+  QuickTrialView,
+  type QuickTrialViewTarget,
+} from "@/components/trial/quick-trial-view"
 import { TrackOrdersFilterBar } from "@/components/track-orders/track-orders-filter-bar"
 import { resolveProductCatId } from "@/lib/track-orders/product-cat-id"
 import { DataGrid } from "@/components/data-grid/data-grid"
@@ -115,6 +120,7 @@ function OrderStatusCell(params: ICellRendererParams<TrackOrderGridRow>) {
 }
 
 export function TrackOrdersPageClient() {
+  const router = useRouter()
   const list = useTrackOrdersList()
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
   const [pageQuickFilter, setPageQuickFilter] = useState("")
@@ -145,6 +151,10 @@ export function TrackOrdersPageClient() {
 
   const [qcOpen, setQcOpen] = useState(false)
   const [qcTarget, setQcTarget] = useState<QualityCheckViewTarget | null>(null)
+
+  const [trialViewOpen, setTrialViewOpen] = useState(false)
+  const [trialViewTarget, setTrialViewTarget] =
+    useState<QuickTrialViewTarget | null>(null)
 
   const [detailRefreshNonce, setDetailRefreshNonce] = useState(0)
   const [detailHeights, setDetailHeights] = useState<Record<string, number>>(
@@ -239,6 +249,29 @@ export function TrackOrdersPageClient() {
       },
       onItemAction: (action, orderId, orderNo, item, meta) => {
         const order = list.rows.find((row) => row._id === orderId)
+
+        if (action === "trialView") {
+          if (order?.orderTrial?._id) {
+            setTrialViewTarget({
+              kind: "trialId",
+              trialId: order.orderTrial._id,
+            })
+            setTrialViewOpen(true)
+          } else {
+            router.push(`/trial/form?orderId=${orderId}`)
+          }
+          return
+        }
+
+        if (action === "trialEdit") {
+          if (order?.orderTrial?._id) {
+            router.push(`/trial/form?trailId=${order.orderTrial._id}`)
+          } else {
+            router.push(`/trial/form?orderId=${orderId}`)
+          }
+          return
+        }
+
         if (action === "stylingForm") {
           setStyleFormTarget({
             orderId,
@@ -312,7 +345,7 @@ export function TrackOrdersPageClient() {
         }
       },
     }),
-    [detailRefreshNonce, list.rows, onDetailHeight]
+    [detailRefreshNonce, list.rows, onDetailHeight, router]
   )
 
   const columnDefs = useMemo<ColDef<TrackOrderGridRow>[]>(
@@ -683,6 +716,18 @@ export function TrackOrdersPageClient() {
         onOpenChange={(next) => {
           setQcOpen(next)
           if (!next) setQcTarget(null)
+        }}
+      />
+
+      <QuickTrialView
+        open={trialViewOpen}
+        target={trialViewTarget}
+        showEditButton
+        showUpdate
+        showWhatsApp
+        onOpenChange={(next) => {
+          setTrialViewOpen(next)
+          if (!next) setTrialViewTarget(null)
         }}
       />
     </div>

@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { TrialPageClient } from "./trial-page-client"
 
 export default function TrialPage() {
-  return <PlaceholderPage title="Trial" />
+  return <TrialPageClient />
 }

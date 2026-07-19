@@ -16,7 +16,8 @@ import type { StylistOption } from "@/lib/apollo/queries/stylists"
 import { cn } from "@/lib/utils"
 
 type StylistSearchSelectProps = {
-  label: string
+  /** Omit or pass empty string to hide the field label. */
+  label?: string
   stylists: StylistOption[]
   value: string
   onChange: (stylistId: string) => void
@@ -55,9 +56,11 @@ export function StylistSearchSelect({
 
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <Label htmlFor={id} className="text-muted-foreground text-xs font-normal">
-        {label}
-      </Label>
+      {label ? (
+        <Label htmlFor={id} className="text-muted-foreground text-xs font-normal">
+          {label}
+        </Label>
+      ) : null}
       <Popover
         open={open}
         onOpenChange={(next) => {
@@ -67,6 +70,7 @@ export function StylistSearchSelect({
       >
         <PopoverTrigger
           id={id}
+          aria-label={label || "Select stylist"}
           disabled={disabled || loading}
           className={cn(
             "border-input flex h-8 w-full items-center justify-between gap-2 rounded-lg border bg-transparent px-2.5 text-sm outline-none",

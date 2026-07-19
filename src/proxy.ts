@@ -7,8 +7,11 @@ export async function proxy(request: NextRequest) {
 
   const isAuthRoute =
     pathname.startsWith("/login") || pathname.startsWith("/api/auth")
+  const isPublicShared =
+    pathname.startsWith("/shared/trail-details") ||
+    pathname.startsWith("/shared/order-details")
 
-  if (!sessionCookie && !isAuthRoute) {
+  if (!sessionCookie && !isAuthRoute && !isPublicShared) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 

@@ -1,6 +1,8 @@
 import { gql } from "@apollo/client/core"
 
 import type { MpfDateFilter } from "@/lib/customers/date-filter"
+import type { NestedOrderTrial } from "@/lib/apollo/queries/trial"
+import { NESTED_ORDER_TRIAL_FIELDS } from "@/lib/apollo/queries/trial"
 
 const DATE_TIME_FIELDS = `
   datestamp
@@ -52,6 +54,21 @@ export type StoreOrderListRow = StoreOrderCalendarRow & {
   isGroupCreated?: boolean | null
   readyDate?: StoreOrderTimestamp | null
   studio?: Array<{ _id?: string | null; name?: string | null } | null> | null
+  /** Present when list query selects slim orderTrial. */
+  orderTrial?: Pick<NestedOrderTrial, "_id"> | null
+}
+
+/** Trial All Orders tab — store orders with nested orderTrial. */
+export type TrialStoreOrderRow = StoreOrderCalendarRow & {
+  userId?: string | null
+  customerId?: string | null
+  customerPhone?: string | null
+  customerCountryCode?: string | null
+  orderTrial?: NestedOrderTrial | null
+}
+
+export type GetTrialStoreOrdersData = {
+  getAllStoreOrders: TrialStoreOrderRow[]
 }
 
 export type StoreOrderItem = {
@@ -110,12 +127,16 @@ export type StoreOrderItem = {
 
 export type StoreOrderDetail = StoreOrderCalendarRow & {
   userId?: string | null
+  customerId?: string | null
+  customerPhone?: string | null
+  customerCountryCode?: string | null
   balanceAmount?: number | null
   orderTotal?: number | null
   eventDate?: StoreOrderTimestamp | null
   deliveryDate?: StoreOrderTimestamp | null
   readyDate?: StoreOrderTimestamp | null
   orderItems?: StoreOrderItem[] | null
+  orderTrial?: NestedOrderTrial | null
   paymentBreakdown?: Array<{
     note?: string | null
     amount?: number | null
@@ -340,6 +361,44 @@ export const GET_TRACK_ORDERS_LIST = gql`
         _id
         name
       }
+      orderTrial {
+        _id
+      }
+    }
+  }
+`
+
+/** Trial module All Orders tab — includes nested orderTrial for view/enter. */
+export const GET_TRIAL_STORE_ORDERS = gql`
+  query GetTrialStoreOrders(
+    $params: StoreProductOrderFilterInputParams!
+    $page: Int
+    $limit: Int
+  ) {
+    getAllStoreOrders(params: $params, page: $page, limit: $limit) {
+      _id
+      userId
+      customerId
+      customerPhone
+      customerCountryCode
+      orderNo
+      customerFirstName
+      customerLastName
+      orderStatus
+      orderDate {
+        ${DATE_TIME_FIELDS}
+      }
+      trialDate {
+        ${DATE_TIME_FIELDS}
+      }
+      deliveryDate {
+        ${DATE_TIME_FIELDS}
+      }
+      stylist {
+        _id
+        name
+      }
+      ${NESTED_ORDER_TRIAL_FIELDS}
     }
   }
 `
@@ -410,6 +469,9 @@ export const GET_STORE_ORDER_BY_ID = gql`
     getStoreOrderById(orderId: $orderId) {
       _id
       userId
+      customerId
+      customerPhone
+      customerCountryCode
       orderNo
       customerFirstName
       customerLastName
@@ -440,6 +502,7 @@ export const GET_STORE_ORDER_BY_ID = gql`
         image
         note
       }
+      ${NESTED_ORDER_TRIAL_FIELDS}
       paymentBreakdown {
         note
         amount
