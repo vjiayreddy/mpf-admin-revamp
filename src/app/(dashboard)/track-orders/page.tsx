@@ -1,5 +1,17 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { Suspense } from "react"
+
+import { TrackOrdersPageClient } from "./track-orders-page-client"
 
 export default function TrackOrdersPage() {
-  return <PlaceholderPage title="Track Orders" />
+  return (
+    <Suspense
+      fallback={
+        <div className="text-muted-foreground text-sm">
+          Loading track orders…
+        </div>
+      }
+    >
+      <TrackOrdersPageClient />
+    </Suspense>
+  )
 }

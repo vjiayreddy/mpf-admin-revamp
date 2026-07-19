@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -11,6 +12,8 @@ type ReceiptImagePreviewProps = {
   initialIndex?: number
   onOpenChange: (open: boolean) => void
   ariaLabel?: string
+  /** QR codes need a white canvas and fixed large size for scanning. */
+  variant?: "default" | "qr"
 }
 
 export function ReceiptImagePreview({
@@ -19,8 +22,14 @@ export function ReceiptImagePreview({
   initialIndex = 0,
   onOpenChange,
   ariaLabel = "Image preview",
+  variant = "default",
 }: ReceiptImagePreviewProps) {
   const [index, setIndex] = useState(initialIndex)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (open) setIndex(initialIndex)
@@ -58,16 +67,16 @@ export function ReceiptImagePreview({
     }
   }, [open, close, showPrev, showNext])
 
-  if (!open || images.length === 0) return null
+  if (!mounted || !open || images.length === 0) return null
 
   const src = images[Math.min(index, images.length - 1)]
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}
-      className="fixed inset-0 z-[100] flex flex-col bg-black/90"
+      className="fixed inset-0 z-[2000] flex flex-col bg-black/90"
       onClick={close}
     >
       <div
@@ -108,8 +117,12 @@ export function ReceiptImagePreview({
         {/* eslint-disable-next-line @next/next/no-img-element -- remote payment screenshots */}
         <img
           src={src}
-          alt="Payment screenshot"
-          className="max-h-full max-w-full rounded-lg object-contain"
+          alt={variant === "qr" ? "QR code" : "Payment screenshot"}
+          className={
+            variant === "qr"
+              ? "h-[min(70vh,28rem)] w-[min(70vh,28rem)] rounded-xl bg-white object-contain p-6 shadow-lg"
+              : "max-h-full max-w-full rounded-lg object-contain"
+          }
         />
         {images.length > 1 ? (
           <Button
@@ -149,6 +162,7 @@ export function ReceiptImagePreview({
           ))}
         </div>
       ) : null}
-    </div>
+    </div>,
+    document.body
   )
 }

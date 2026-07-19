@@ -2,7 +2,15 @@
 
 import { useMemo, useRef } from "react"
 import { AgGridReact, type AgGridReactProps } from "ag-grid-react"
-import type { ColDef, RowClickedEvent } from "ag-grid-community"
+import type {
+  ColDef,
+  GetRowIdParams,
+  GridApi,
+  IsFullWidthRowParams,
+  RowClassParams,
+  RowClickedEvent,
+  RowHeightParams,
+} from "ag-grid-community"
 import { themeQuartz } from "ag-grid-community"
 
 import { ensureAgGridModules } from "@/components/data-grid/register-ag-grid"
@@ -37,6 +45,20 @@ export type DataGridProps<TData> = {
   quickFilterText?: string
   className?: string
   heightClassName?: string
+  /** Community stand-in for Enterprise master/detail. */
+  isFullWidthRow?: (params: IsFullWidthRowParams<TData>) => boolean
+  fullWidthCellRenderer?: AgGridReactProps<TData>["fullWidthCellRenderer"]
+  getRowHeight?: (params: RowHeightParams<TData>) => number | undefined | null
+  /**
+   * When true with pinned columns, full-width content is split per section
+   * (and can look crushed). Prefer false for detail panels.
+   */
+  embedFullWidthRows?: boolean
+  /** Passed through to cell/full-width renderers as `params.context`. */
+  context?: AgGridReactProps<TData>["context"]
+  getRowClass?: (params: RowClassParams<TData>) => string | string[] | undefined
+  onGridReady?: AgGridReactProps<TData>["onGridReady"]
+  gridApiRef?: React.MutableRefObject<GridApi<TData> | null>
 }
 
 /**
@@ -53,6 +75,14 @@ export function DataGrid<TData>({
   quickFilterText,
   className,
   heightClassName = "h-[calc(100vh-14rem)]",
+  isFullWidthRow,
+  fullWidthCellRenderer,
+  getRowHeight,
+  embedFullWidthRows = false,
+  context,
+  getRowClass,
+  onGridReady,
+  gridApiRef,
 }: DataGridProps<TData>) {
   const gridRef = useRef<AgGridReact<TData>>(null)
 
@@ -89,9 +119,19 @@ export function DataGrid<TData>({
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
         loading={loading}
-        getRowId={getRowId}
+        getRowId={getRowId as (params: GetRowIdParams<TData>) => string}
         onRowClicked={onRowClicked}
         quickFilterText={quickFilterText}
+        isFullWidthRow={isFullWidthRow}
+        fullWidthCellRenderer={fullWidthCellRenderer}
+        getRowHeight={getRowHeight}
+        embedFullWidthRows={embedFullWidthRows}
+        context={context}
+        getRowClass={getRowClass}
+        onGridReady={(e) => {
+          if (gridApiRef) gridApiRef.current = e.api
+          onGridReady?.(e)
+        }}
         tooltipShowDelay={400}
         tooltipHideDelay={10000}
         animateRows={false}
