@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react"
 import {
+  Activity,
   BarChart3,
   Bell,
   BookOpen,
@@ -151,6 +152,11 @@ export const navigation: NavItem[] = [
     title: "Release Versions",
     href: "/release-versions",
     icon: Bell,
+  },
+  {
+    title: "System",
+    icon: Activity,
+    children: [{ title: "Monitoring", href: "/system/health" }],
   },
 ]
 
