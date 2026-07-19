@@ -5,7 +5,7 @@ import { useApolloClient, useMutation } from "@apollo/client/react"
 import type { ICellRendererParams } from "ag-grid-community"
 import { Loader2Icon, PencilIcon } from "lucide-react"
 
-import { OrderItemRowActions } from "@/components/track-orders/order-item-row-actions"
+import { OrderItemRowActions, type OrderItemRowAction } from "@/components/track-orders/order-item-row-actions"
 import { ReceiptImagePreview } from "@/components/receipts/receipt-image-preview"
 import { Button } from "@/components/ui/button"
 import {
@@ -106,6 +106,12 @@ export type OrderItemsDetailPanelContext = {
     item: StoreOrderItem
   ) => void
   onEditItemProductionStatus?: (
+    orderId: string,
+    orderNo: string | number | null | undefined,
+    item: StoreOrderItem
+  ) => void
+  onItemAction?: (
+    action: OrderItemRowAction,
     orderId: string,
     orderNo: string | number | null | undefined,
     item: StoreOrderItem
@@ -585,7 +591,18 @@ export function OrderItemsDetailPanel(params: OrderItemsDetailPanelProps) {
                       style={{ height: DETAIL_ROW_H }}
                     >
                       <td className="overflow-hidden px-1 py-1.5 align-middle">
-                        <OrderItemRowActions item={item} />
+                        <OrderItemRowActions
+                          item={item}
+                          onAction={(action, rowItem) => {
+                            if (!orderId) return
+                            context.onItemAction?.(
+                              action,
+                              orderId,
+                              orderNo,
+                              rowItem
+                            )
+                          }}
+                        />
                       </td>
                       <td className="overflow-hidden px-2 py-1.5 align-middle whitespace-nowrap">
                         <button
