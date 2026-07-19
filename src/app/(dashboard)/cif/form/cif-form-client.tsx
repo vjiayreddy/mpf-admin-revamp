@@ -237,29 +237,18 @@ export function CifFormClient() {
 
   const loading = (isEdit && loadingCif) || (!isEdit && !!userIdParam && loadingUser)
 
-  return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          nativeButton={false}
-          render={
-            <Link
-              href={
-                userIdParam
-                  ? `/customers/${userIdParam}/cif`
-                  : "/cif"
-              }
-            />
-          }
-        >
-          <ArrowLeftIcon className="size-3.5" />
-          Back
-        </Button>
-      </div>
+  const backHref = userIdParam ? `/customers/${userIdParam}/cif` : "/cif"
 
+  return (
+    <div className="flex w-full flex-col gap-4">
       <div className="flex flex-col gap-1">
+        <Link
+          href={backHref}
+          className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5 text-sm"
+        >
+          <ArrowLeftIcon className="size-4" />
+          Back to CIF
+        </Link>
         <h1 className="text-2xl font-semibold tracking-tight">
           {isEdit ? "Edit CIF" : "Create CIF"}
         </h1>
@@ -270,234 +259,299 @@ export function CifFormClient() {
 
       {loading ? (
         <div className="space-y-3">
-          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-32 w-full" />
           <Skeleton className="h-40 w-full" />
         </div>
       ) : (
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <section className={sectionClass}>
-            <SectionTitle title="Customer" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field
-                id="firstName"
-                label="First name"
-                error={form.formState.errors.firstName?.message}
-              >
-                <Input id="firstName" {...form.register("firstName")} />
-              </Field>
-              <Field
-                id="lastName"
-                label="Last name"
-                error={form.formState.errors.lastName?.message}
-              >
-                <Input id="lastName" {...form.register("lastName")} />
-              </Field>
-              <Field
-                id="phone"
-                label="Phone"
-                error={form.formState.errors.phone?.message}
-              >
-                <Controller
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <PhoneInput
-                      id="phone"
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  )}
-                />
-              </Field>
-              <Field
-                id="email"
-                label="Email"
-                error={form.formState.errors.email?.message}
-              >
-                <Input id="email" type="email" {...form.register("email")} />
-              </Field>
-              <Field id="gender" label="Gender">
-                <select
-                  id="gender"
-                  className={selectClass}
-                  {...form.register("gender")}
-                >
-                  <option value="M">Male</option>
-                  <option value="F">Female</option>
-                </select>
-              </Field>
-              <Field id="customerSerialNo" label="Customer serial no">
-                <Input
-                  id="customerSerialNo"
-                  {...form.register("customerSerialNo")}
-                />
-              </Field>
-              <Field id="userId" label="User id">
-                <Input id="userId" {...form.register("userId")} />
-              </Field>
-            </div>
-          </section>
-
-          <section className={sectionClass}>
-            <SectionTitle title="Visit details" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field id="studioId" label="Studio">
-                <select
-                  id="studioId"
-                  className={selectClass}
-                  disabled={studiosLoading}
-                  {...form.register("studioId")}
-                >
-                  <option value="">Select studio</option>
-                  {studios.map((studio) => (
-                    <option key={studio._id} value={studio._id}>
-                      {studio.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field id="stylistId" label="Stylist">
-                <Controller
-                  control={form.control}
-                  name="stylistId"
-                  render={({ field }) => (
-                    <StylistSearchSelect
-                      label="Stylist"
-                      stylists={stylists}
-                      value={field.value ?? ""}
-                      onChange={field.onChange}
-                      loading={stylistsLoading}
-                    />
-                  )}
-                />
-              </Field>
-              <Field id="customerInfoStatus" label="Status">
-                <select
-                  id="customerInfoStatus"
-                  className={selectClass}
-                  {...form.register("customerInfoStatus")}
-                >
-                  {CIF_STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field id="lookingFor" label="Looking for">
-                <Input id="lookingFor" {...form.register("lookingFor")} />
-              </Field>
-              <Field id="createdDate" label="Created date">
-                <Input
-                  id="createdDate"
-                  type="date"
-                  {...form.register("createdDate")}
-                />
-              </Field>
-              <Field id="eventDate" label="Event date">
-                <Input
-                  id="eventDate"
-                  type="date"
-                  {...form.register("eventDate")}
-                />
-              </Field>
-              <Field id="followUpDate" label="Follow-up date">
-                <Input
-                  id="followUpDate"
-                  type="date"
-                  {...form.register("followUpDate")}
-                />
-              </Field>
-              <Field id="lastVisitedDate" label="Last visited">
-                <Input
-                  id="lastVisitedDate"
-                  type="date"
-                  {...form.register("lastVisitedDate")}
-                />
-              </Field>
-              <Field id="rating" label="CIF rating">
-                <Input
-                  id="rating"
-                  type="number"
-                  min={0}
-                  max={5}
-                  {...form.register("rating")}
-                />
-              </Field>
-              <Field id="isLookBookShared" label="Lookbook shared">
-                <select
-                  id="isLookBookShared"
-                  className={selectClass}
-                  {...form.register("isLookBookShared")}
-                >
-                  <option value="false">No</option>
-                  <option value="true">Yes</option>
-                </select>
-              </Field>
-            </div>
-          </section>
-
-          <section className={sectionClass}>
-            <SectionTitle
-              title="Occasion"
-              description="Primary occasion captured on this visit."
-            />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field id="occasion" label="Occasion">
-                <Input id="occasion" {...form.register("occasion")} />
-              </Field>
-              <Field id="budget" label="Budget">
-                <Input id="budget" type="number" {...form.register("budget")} />
-              </Field>
-              <Field id="priceQuote" label="Price quote">
-                <Input
-                  id="priceQuote"
-                  type="number"
-                  {...form.register("priceQuote")}
-                />
-              </Field>
-              <Field
-                id="outfitsNote"
-                label="Outfits note"
-                className="space-y-1.5 sm:col-span-2"
-              >
-                <Textarea id="outfitsNote" {...form.register("outfitsNote")} />
-              </Field>
-            </div>
-          </section>
-
-          <section className={sectionClass}>
-            <SectionTitle title="Notes" />
-            <div className="grid gap-3">
-              <Field id="note" label="Note">
-                <Textarea id="note" {...form.register("note")} />
-              </Field>
-              <Field id="crossSellingNote" label="Cross-selling note">
-                <Textarea
-                  id="crossSellingNote"
-                  {...form.register("crossSellingNote")}
-                />
-              </Field>
-              <Field id="salesTeamRemarksNote" label="Sales team remark">
-                <Textarea
-                  id="salesTeamRemarksNote"
-                  {...form.register("salesTeamRemarksNote")}
-                />
-              </Field>
-            </div>
-          </section>
-
+        <form onSubmit={onSubmit} className="flex w-full flex-col gap-4">
           {submitError ? (
             <p className="text-destructive text-sm" role="alert">
               {submitError}
             </p>
           ) : null}
 
-          <div className="flex items-center justify-end gap-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            <div className="flex flex-col gap-4 lg:col-span-7">
+              <section className={sectionClass}>
+                <SectionTitle
+                  title="Customer"
+                  description="Contact details and customer link."
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field
+                    id="firstName"
+                    label="First name"
+                    error={form.formState.errors.firstName?.message}
+                  >
+                    <Input id="firstName" {...form.register("firstName")} />
+                  </Field>
+                  <Field
+                    id="lastName"
+                    label="Last name"
+                    error={form.formState.errors.lastName?.message}
+                  >
+                    <Input id="lastName" {...form.register("lastName")} />
+                  </Field>
+                  <Field
+                    id="phone"
+                    label="Phone"
+                    error={form.formState.errors.phone?.message}
+                    className="space-y-1.5 sm:col-span-2"
+                  >
+                    <Controller
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <PhoneInput
+                          id="phone"
+                          international
+                          defaultCountry="IN"
+                          placeholder="Phone number"
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          aria-invalid={!!form.formState.errors.phone}
+                          className={cn(
+                            form.formState.errors.phone &&
+                              "[&_input]:border-destructive"
+                          )}
+                        />
+                      )}
+                    />
+                  </Field>
+                  <Field
+                    id="email"
+                    label="Email"
+                    error={form.formState.errors.email?.message}
+                  >
+                    <Input
+                      id="email"
+                      type="email"
+                      {...form.register("email")}
+                    />
+                  </Field>
+                  <Field id="gender" label="Gender">
+                    <select
+                      id="gender"
+                      className={selectClass}
+                      {...form.register("gender")}
+                    >
+                      <option value="M">Male</option>
+                      <option value="F">Female</option>
+                    </select>
+                  </Field>
+                  <Field id="customerSerialNo" label="Customer serial no">
+                    <Input
+                      id="customerSerialNo"
+                      {...form.register("customerSerialNo")}
+                    />
+                  </Field>
+                  <Field id="userId" label="User id">
+                    <Input
+                      id="userId"
+                      readOnly={Boolean(userIdParam) || isEdit}
+                      disabled={Boolean(userIdParam) || isEdit}
+                      {...form.register("userId")}
+                    />
+                  </Field>
+                </div>
+              </section>
+
+              <section className={sectionClass}>
+                <SectionTitle
+                  title="Occasion"
+                  description="Primary occasion captured on this visit."
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field id="occasion" label="Occasion">
+                    <Input id="occasion" {...form.register("occasion")} />
+                  </Field>
+                  <Field id="budget" label="Budget">
+                    <Input
+                      id="budget"
+                      type="number"
+                      {...form.register("budget")}
+                    />
+                  </Field>
+                  <Field id="priceQuote" label="Price quote">
+                    <Input
+                      id="priceQuote"
+                      type="number"
+                      {...form.register("priceQuote")}
+                    />
+                  </Field>
+                  <Field
+                    id="outfitsNote"
+                    label="Outfits note"
+                    className="space-y-1.5 sm:col-span-2"
+                  >
+                    <Textarea
+                      id="outfitsNote"
+                      rows={3}
+                      {...form.register("outfitsNote")}
+                    />
+                  </Field>
+                </div>
+              </section>
+
+              <section className={sectionClass}>
+                <SectionTitle title="Notes" />
+                <div className="grid gap-3">
+                  <Field id="note" label="Note">
+                    <Textarea id="note" rows={3} {...form.register("note")} />
+                  </Field>
+                  <Field id="crossSellingNote" label="Cross-selling note">
+                    <Textarea
+                      id="crossSellingNote"
+                      rows={2}
+                      {...form.register("crossSellingNote")}
+                    />
+                  </Field>
+                  <Field id="salesTeamRemarksNote" label="Sales team remark">
+                    <Textarea
+                      id="salesTeamRemarksNote"
+                      rows={2}
+                      {...form.register("salesTeamRemarksNote")}
+                    />
+                  </Field>
+                </div>
+              </section>
+            </div>
+
+            <div className="flex flex-col gap-4 lg:col-span-5">
+              <section className={sectionClass}>
+                <SectionTitle
+                  title="Assignment"
+                  description="Studio, stylist, status, and rating."
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field
+                    id="studioId"
+                    label="Studio"
+                    className="space-y-1.5 sm:col-span-2"
+                  >
+                    <select
+                      id="studioId"
+                      className={selectClass}
+                      disabled={studiosLoading}
+                      {...form.register("studioId")}
+                    >
+                      <option value="">Select studio</option>
+                      {studios.map((studio) => (
+                        <option key={studio._id} value={studio._id}>
+                          {studio.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field
+                    id="stylistId"
+                    label="Stylist"
+                    className="space-y-1.5 sm:col-span-2"
+                  >
+                    <Controller
+                      control={form.control}
+                      name="stylistId"
+                      render={({ field }) => (
+                        <StylistSearchSelect
+                          stylists={stylists}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          loading={stylistsLoading}
+                        />
+                      )}
+                    />
+                  </Field>
+                  <Field id="customerInfoStatus" label="Status">
+                    <select
+                      id="customerInfoStatus"
+                      className={selectClass}
+                      {...form.register("customerInfoStatus")}
+                    >
+                      {CIF_STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field id="rating" label="CIF rating">
+                    <Input
+                      id="rating"
+                      type="number"
+                      min={0}
+                      max={5}
+                      {...form.register("rating")}
+                    />
+                  </Field>
+                  <Field
+                    id="lookingFor"
+                    label="Looking for"
+                    className="space-y-1.5 sm:col-span-2"
+                  >
+                    <Input id="lookingFor" {...form.register("lookingFor")} />
+                  </Field>
+                  <Field
+                    id="isLookBookShared"
+                    label="Lookbook shared"
+                    className="space-y-1.5 sm:col-span-2"
+                  >
+                    <select
+                      id="isLookBookShared"
+                      className={selectClass}
+                      {...form.register("isLookBookShared")}
+                    >
+                      <option value="false">No</option>
+                      <option value="true">Yes</option>
+                    </select>
+                  </Field>
+                </div>
+              </section>
+
+              <section className={sectionClass}>
+                <SectionTitle
+                  title="Dates"
+                  description="Created, event, follow-up, and last visited."
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field id="createdDate" label="Created date">
+                    <Input
+                      id="createdDate"
+                      type="date"
+                      {...form.register("createdDate")}
+                    />
+                  </Field>
+                  <Field id="eventDate" label="Event date">
+                    <Input
+                      id="eventDate"
+                      type="date"
+                      {...form.register("eventDate")}
+                    />
+                  </Field>
+                  <Field id="followUpDate" label="Follow-up date">
+                    <Input
+                      id="followUpDate"
+                      type="date"
+                      {...form.register("followUpDate")}
+                    />
+                  </Field>
+                  <Field id="lastVisitedDate" label="Last visited">
+                    <Input
+                      id="lastVisitedDate"
+                      type="date"
+                      {...form.register("lastVisitedDate")}
+                    />
+                  </Field>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div className="bg-background/80 sticky bottom-0 z-10 flex flex-wrap items-center justify-end gap-2 border-t pt-4">
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.back()}
+              onClick={() => router.push(backHref)}
               disabled={saving}
             >
               Cancel
