@@ -43,6 +43,17 @@ export type StoreOrderCalendarRow = {
   stylist?: StoreOrderStylist[] | null
 }
 
+/** Slim order row for the track-orders list grid (no nested item payloads). */
+export type StoreOrderListRow = StoreOrderCalendarRow & {
+  userId?: string | null
+  customerId?: string | null
+  productionStatus?: string | null
+  balanceAmount?: number | null
+  isGroupCreated?: boolean | null
+  readyDate?: StoreOrderTimestamp | null
+  studio?: Array<{ _id?: string | null; name?: string | null } | null> | null
+}
+
 export type StoreOrderItem = {
   _id?: string | null
   itemName?: string | null
@@ -56,9 +67,12 @@ export type StoreOrderItem = {
   readyItemImage?: string | null
   fabricImage?: string | null
   referenceImage?: string | null
+  fitImage?: string | null
+  qrCodeImage?: string | null
   itemCatId?: string | null
   productionStatus?: string | null
   measurementApprovalStatus?: string | null
+  trackingNote?: string | null
   dyingWorkshopId?: string | null
   dyingWorkshopName?: string | null
   embroideryWorkshopId?: string | null
@@ -67,6 +81,8 @@ export type StoreOrderItem = {
   fabricWorkshopName?: string | null
   itemWorkshopId?: string | null
   itemWorkshopName?: string | null
+  stitchingWorkshopId?: string | null
+  stitchingWorkshopName?: string | null
   trialDate?: StoreOrderTimestamp | null
   readyDate?: StoreOrderTimestamp | null
   styleDesign?: {
@@ -127,8 +143,19 @@ export type StoreOrderFilterParams = {
   endTrialDate?: MpfDateFilter
   startOrderDate?: MpfDateFilter
   endOrderDate?: MpfDateFilter
+  startEventDate?: MpfDateFilter
+  endEventDate?: MpfDateFilter
+  startReadyDate?: MpfDateFilter
+  endReadyDate?: MpfDateFilter
+  startDeliveryDate?: MpfDateFilter
+  endDeliveryDate?: MpfDateFilter
   personalStylistId?: string
   roleFilter?: { _id?: string | null; roleIdentifier?: string | null } | null
+  studioIds?: string[]
+  measurementApprovalStatus?: string | null
+  outfitStatus?: string[]
+  catIds?: string[]
+  hasEmbroidary?: boolean
 }
 
 export type GetAllStoreOrdersVars = {
@@ -141,9 +168,24 @@ export type GetAllStoreOrdersData = {
   getAllStoreOrders: StoreOrderCalendarRow[]
 }
 
+export type GetTrackOrdersListData = {
+  getAllStoreOrders: StoreOrderListRow[]
+}
+
 export type GetStoreOrderByIdVars = { orderId: string }
 export type GetStoreOrderByIdData = {
   getStoreOrderById: StoreOrderDetail | null
+}
+
+/** Detail expand payload — items only, no payments / styleDesign trees. */
+export type StoreOrderItemsDetail = {
+  _id: string
+  orderNo?: string | number | null
+  orderItems?: StoreOrderItem[] | null
+}
+
+export type GetStoreOrderItemsDetailData = {
+  getStoreOrderById: StoreOrderItemsDetail | null
 }
 
 export type SaveStoreOrderVars = {
@@ -154,7 +196,79 @@ export type SaveStoreOrderData = {
   saveStoreOrder: { _id: string } | null
 }
 
+export type StoreOrderUpdateAttributes = {
+  trialDate?: Record<string, unknown> | null
+  readyDate?: Record<string, unknown> | null
+  orderStatus?: string | null
+  remark?: string | null
+  isGroupCreated?: boolean | null
+}
+
+export type UpdateStoreOrderAttributesVars = {
+  orderId: string
+  attributes: StoreOrderUpdateAttributes
+}
+
+export type UpdateStoreOrderAttributesData = {
+  updateStoreOrderAttributes: { _id: string } | null
+}
+
+export type StoreOrderItemUpdateAttributes = {
+  outfitStatus?: string | null
+  trackingNote?: string | null
+  trialDate?: Record<string, unknown> | null
+  readyDate?: Record<string, unknown> | null
+  dyingWorkshopId?: string | null
+  dyingWorkshopName?: string | null
+  itemWorkshopId?: string | null
+  itemWorkshopName?: string | null
+  fabricWorkshopId?: string | null
+  fabricWorkshopName?: string | null
+  embroideryWorkshopId?: string | null
+  embroideryWorkshopName?: string | null
+  stitchingWorkshopId?: string | null
+  stitchingWorkshopName?: string | null
+  readyItemImage?: string | null
+}
+
+export type UpdateStoreOrderItemAttributesVars = {
+  orderId: string
+  orderItemId: string
+  attributes: StoreOrderItemUpdateAttributes
+}
+
+export type UpdateStoreOrderItemAttributesData = {
+  updateStoreOrderItemAttributes: boolean | null
+}
+
+export type ProductionStatusEnum =
+  | "COMPLETED"
+  | "IN_PROGRESS"
+  | "ISSUE"
+  | "URGENT"
+
+export type UpdateStoreOrderProductionStatusVars = {
+  orderId: string
+  productionStatus: ProductionStatusEnum
+}
+
+export type UpdateStoreOrderProductionStatusData = {
+  updateStoreOrderProductionStatus: boolean | null
+}
+
+export type UpdateStoreOrderItemProductionStatusVars = {
+  orderId: string
+  orderItemId: string
+  productionStatus: ProductionStatusEnum
+}
+
+export type UpdateStoreOrderItemProductionStatusData = {
+  updateStoreOrderItemProductionStatus: boolean | null
+}
+
 export const STORE_ORDERS_PAGE_LIMIT = 500
+/** Server page size for track-orders AG Grid list (legacy used 100). */
+export const TRACK_ORDERS_LIST_PAGE_LIMIT = 100
 
 export const GET_ALL_STORE_ORDERS = gql`
   query GetAllStoreOrders(
@@ -178,6 +292,89 @@ export const GET_ALL_STORE_ORDERS = gql`
       stylist {
         _id
         name
+      }
+    }
+  }
+`
+
+/** Order-level list selection — no orderItems / images / styleDesign trees. */
+export const GET_TRACK_ORDERS_LIST = gql`
+  query GetTrackOrdersList(
+    $params: StoreProductOrderFilterInputParams!
+    $page: Int
+    $limit: Int
+  ) {
+    getAllStoreOrders(params: $params, page: $page, limit: $limit) {
+      _id
+      userId
+      customerId
+      orderNo
+      customerFirstName
+      customerLastName
+      orderStatus
+      productionStatus
+      remark
+      balanceAmount
+      isGroupCreated
+      orderDate {
+        ${DATE_TIME_FIELDS}
+      }
+      trialDate {
+        ${DATE_TIME_FIELDS}
+      }
+      readyDate {
+        ${DATE_TIME_FIELDS}
+      }
+      stylist {
+        _id
+        name
+      }
+      studio {
+        _id
+        name
+      }
+    }
+  }
+`
+
+/** On-expand items for list master/detail — slim vs full getById. */
+export const GET_STORE_ORDER_ITEMS_FOR_DETAIL = gql`
+  query GetStoreOrderItemsForDetail($orderId: ID!) {
+    getStoreOrderById(orderId: $orderId) {
+      _id
+      orderNo
+      orderItems {
+        _id
+        itemName
+        itemNumber
+        itemColor
+        fabricCode
+        hasEmbroidary
+        outfitStatus
+        productionStatus
+        measurementApprovalStatus
+        trackingNote
+        readyItemImage
+        fabricImage
+        referenceImage
+        fitImage
+        qrCodeImage
+        itemWorkshopId
+        itemWorkshopName
+        embroideryWorkshopId
+        embroideryWorkshopName
+        dyingWorkshopId
+        dyingWorkshopName
+        fabricWorkshopId
+        fabricWorkshopName
+        stitchingWorkshopId
+        stitchingWorkshopName
+        trialDate {
+          ${DATE_TIME_FIELDS}
+        }
+        readyDate {
+          ${DATE_TIME_FIELDS}
+        }
       }
     }
   }
@@ -297,6 +494,76 @@ export const SAVE_STORE_ORDER = gql`
   mutation SaveStoreOrder($params: StoreProductOrderInput) {
     saveStoreOrder(params: $params) {
       _id
+    }
+  }
+`
+
+export const UPDATE_STORE_ORDER_ATTRIBUTES = gql`
+  mutation UpdateStoreOrderAttributes(
+    $orderId: String!
+    $attributes: StoreProductOrderUpdateAttributesInput!
+  ) {
+    updateStoreOrderAttributes(orderId: $orderId, attributes: $attributes) {
+      _id
+    }
+  }
+`
+
+export const UPDATE_STORE_ORDER_ITEM_ATTRIBUTES = gql`
+  mutation UpdateStoreOrderItemAttributes(
+    $orderId: String!
+    $orderItemId: String!
+    $attributes: StoreProductOrderItemUpdateAttributesInput!
+  ) {
+    updateStoreOrderItemAttributes(
+      orderId: $orderId
+      orderItemId: $orderItemId
+      attributes: $attributes
+    )
+  }
+`
+
+export const UPDATE_STORE_ORDER_PRODUCTION_STATUS = gql`
+  mutation UpdateStoreOrderProductionStatus(
+    $orderId: String!
+    $productionStatus: ProductionStatusEnum!
+  ) {
+    updateStoreOrderProductionStatus(
+      orderId: $orderId
+      productionStatus: $productionStatus
+    )
+  }
+`
+
+export const UPDATE_STORE_ORDER_ITEM_PRODUCTION_STATUS = gql`
+  mutation UpdateStoreOrderItemProductionStatus(
+    $orderId: String!
+    $orderItemId: String!
+    $productionStatus: ProductionStatusEnum!
+  ) {
+    updateStoreOrderItemProductionStatus(
+      orderId: $orderId
+      orderItemId: $orderItemId
+      productionStatus: $productionStatus
+    )
+  }
+`
+
+export type GenerateOrderItemQrCodeVars = {
+  orderId: string
+  orderItemId: string
+}
+
+export type GenerateOrderItemQrCodeData = {
+  generateOrderItemQrCode: {
+    qrCodeUrl?: string | null
+  } | null
+}
+
+export const GENERATE_ORDER_ITEM_QR_CODE = gql`
+  mutation GenerateOrderItemQrCode($orderId: String!, $orderItemId: String!) {
+    generateOrderItemQrCode(orderId: $orderId, orderItemId: $orderItemId) {
+      qrCodeUrl
     }
   }
 `

@@ -47,5 +47,15 @@ export const OUTFIT_STATUS_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "Emb Outsourced", value: "emb_outsourced" },
 ]
 
+export const PRODUCTION_STATUS_OPTIONS: Array<{
+  label: string
+  value: "COMPLETED" | "IN_PROGRESS" | "ISSUE" | "URGENT"
+}> = [
+  { label: "Completed", value: "COMPLETED" },
+  { label: "In Progress", value: "IN_PROGRESS" },
+  { label: "Issue", value: "ISSUE" },
+  { label: "Urgent", value: "URGENT" },
+]
+
 export const DEFAULT_SORT_BY: TrackOrdersSortBy = "TRIAL_DATE"
 export const DEFAULT_ORDER_STATUS = "RUNNING"
