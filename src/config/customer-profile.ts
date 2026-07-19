@@ -58,7 +58,7 @@ export const CUSTOMER_MODULE_SHORTCUTS: CustomerModuleShortcut[] = [
   },
   {
     title: "Appointments",
-    href: () => `/appointments`,
+    href: (userId) => `/customers/${userId}/appointments`,
     icon: Calendar,
   },
   {

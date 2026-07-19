@@ -26,7 +26,13 @@ import {
   type GetAllAppointmentsVars,
 } from "@/lib/apollo/queries/appointments"
 
-export function useAppointmentsList() {
+export type UseAppointmentsListOptions = {
+  /** When set, always filter by this user and keep it scoped on clear-all. */
+  lockedUserId?: string
+}
+
+export function useAppointmentsList(options?: UseAppointmentsListOptions) {
+  const lockedUserId = options?.lockedUserId
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -42,10 +48,11 @@ export function useAppointmentsList() {
   const stylistId =
     searchParams.get(APPOINTMENT_FILTER_PARAMS.stylistId) ?? ""
 
-  const defaultStylistId = useMemo(
-    () => personalStylistIdFromTeamsJson(session?.user?.teamsJson),
-    [session?.user?.teamsJson]
-  )
+  const defaultStylistId = useMemo(() => {
+    // Customer-scoped lists must show all stylists for that user.
+    if (lockedUserId) return null
+    return personalStylistIdFromTeamsJson(session?.user?.teamsJson)
+  }, [lockedUserId, session?.user?.teamsJson])
 
   const { studioNameById } = useAllStudios()
   const { stylists } = useAllStylists()
@@ -58,22 +65,22 @@ export function useAppointmentsList() {
     return map
   }, [stylists])
 
-  const gqlFilter = useMemo(
-    () =>
-      buildAppointmentsFilterFromSearchParams(
-        new URLSearchParams(paramsKey),
-        defaultStylistId
-      ),
-    [paramsKey, defaultStylistId]
-  )
+  const gqlFilter = useMemo(() => {
+    const params = new URLSearchParams(paramsKey)
+    if (lockedUserId) {
+      params.set(APPOINTMENT_FILTER_PARAMS.userId, lockedUserId)
+    }
+    return buildAppointmentsFilterFromSearchParams(params, defaultStylistId)
+  }, [paramsKey, defaultStylistId, lockedUserId])
 
   const activeFilters = useMemo(
     () =>
       listActiveAppointmentFilters(new URLSearchParams(paramsKey), {
         studioNameById,
         stylistNameById,
+        hideUserIdChip: Boolean(lockedUserId),
       }),
-    [paramsKey, studioNameById, stylistNameById]
+    [paramsKey, studioNameById, stylistNameById, lockedUserId]
   )
 
   const advancedFilterCount = useMemo(
@@ -106,12 +113,15 @@ export function useAppointmentsList() {
           params.set(key, value)
         }
       }
+      if (lockedUserId) {
+        params.set(APPOINTMENT_FILTER_PARAMS.userId, lockedUserId)
+      }
       if (resetPage) {
         params.set(APPOINTMENT_FILTER_PARAMS.page, "0")
       }
       router.replace(`${pathname}?${params.toString()}`)
     },
-    [pathname, router, searchParams]
+    [pathname, router, searchParams, lockedUserId]
   )
 
   const setPage = useCallback(
@@ -177,18 +187,39 @@ export function useAppointmentsList() {
   )
 
   const clearAllFilters = useCallback(() => {
-    setParams(getClearAllAppointmentFilterUpdates())
-  }, [setParams])
+    setParams(
+      getClearAllAppointmentFilterUpdates({
+        preserveUserId: Boolean(lockedUserId),
+      })
+    )
+  }, [setParams, lockedUserId])
 
   useEffect(() => {
+    const updates: Record<string, string | null> = {}
+    let needsUpdate = false
+
     if (pageParam === null) {
-      setParams({ [APPOINTMENT_FILTER_PARAMS.page]: "0" }, false)
+      updates[APPOINTMENT_FILTER_PARAMS.page] = "0"
+      needsUpdate = true
     }
-  }, [pageParam, setParams])
+
+    if (
+      lockedUserId &&
+      searchParams.get(APPOINTMENT_FILTER_PARAMS.userId) !== lockedUserId
+    ) {
+      updates[APPOINTMENT_FILTER_PARAMS.userId] = lockedUserId
+      needsUpdate = true
+    }
+
+    if (needsUpdate) {
+      setParams(updates, false)
+    }
+  }, [pageParam, setParams, lockedUserId, searchParams])
 
   useEffect(() => {
     if (!Number.isInteger(page) || page < 0) return
     if (!session?.user) return
+    if (lockedUserId && !gqlFilter.userId) return
 
     void fetchAppointments({
       variables: {
@@ -197,10 +228,9 @@ export function useAppointmentsList() {
         params: gqlFilter,
       },
     })
-  }, [fetchAppointments, page, gqlFilter, session?.user])
+  }, [fetchAppointments, page, gqlFilter, session?.user, lockedUserId])
 
-  const serverRows =
-    data?.getAllAppointments?.appointments ?? []
+  const serverRows = data?.getAllAppointments?.appointments ?? []
   const totalCount = data?.getAllAppointments?.totalItemCount ?? 0
 
   const rows: AppointmentListRow[] = useMemo(
@@ -216,6 +246,7 @@ export function useAppointmentsList() {
     (opts?: { preservePatches?: boolean }) => {
       if (!Number.isInteger(page) || page < 0) return
       if (!session?.user) return
+      if (lockedUserId && !gqlFilter.userId) return
       if (!opts?.preservePatches) {
         setRowPatches({})
       }
@@ -227,7 +258,7 @@ export function useAppointmentsList() {
         },
       })
     },
-    [fetchAppointments, page, gqlFilter, session?.user]
+    [fetchAppointments, page, gqlFilter, session?.user, lockedUserId]
   )
 
   const patchAppointmentRow = useCallback(

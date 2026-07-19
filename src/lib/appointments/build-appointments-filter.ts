@@ -83,12 +83,15 @@ export function listActiveAppointmentFilters(
   options?: {
     studioNameById?: Map<string, string>
     stylistNameById?: Map<string, string>
+    /** When true, omit the userId chip (customer-scoped appointments page). */
+    hideUserIdChip?: boolean
   }
 ): ActiveAppointmentFilter[] {
   const p = APPOINTMENT_FILTER_PARAMS
   const chips: ActiveAppointmentFilter[] = []
   const studioNameById = options?.studioNameById
   const stylistNameById = options?.stylistNameById
+  const hideUserIdChip = options?.hideUserIdChip === true
 
   const searchTerm = searchParams.get(p.searchTerm)
   if (searchTerm) {
@@ -154,7 +157,7 @@ export function listActiveAppointmentFilters(
   }
 
   const userId = searchParams.get(p.userId)
-  if (userId) {
+  if (userId && !hideUserIdChip) {
     chips.push({
       id: "userId",
       label: "User",
@@ -181,12 +184,16 @@ export function countAdvancedAppointmentFilters(
   return count
 }
 
-export function getClearAllAppointmentFilterUpdates(): Record<string, null> {
+export function getClearAllAppointmentFilterUpdates(options?: {
+  preserveUserId?: boolean
+}): Record<string, null> {
   const updates: Record<string, null> = {
     [APPOINTMENT_FILTER_PARAMS.searchTerm]: null,
     [APPOINTMENT_FILTER_PARAMS.status]: null,
     [APPOINTMENT_FILTER_PARAMS.stylistId]: null,
-    [APPOINTMENT_FILTER_PARAMS.userId]: null,
+  }
+  if (!options?.preserveUserId) {
+    updates[APPOINTMENT_FILTER_PARAMS.userId] = null
   }
   for (const key of MORE_APPOINTMENT_FILTER_KEYS) {
     updates[key] = null
