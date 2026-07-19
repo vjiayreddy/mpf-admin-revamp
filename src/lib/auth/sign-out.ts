@@ -2,6 +2,7 @@
 
 import { authClient } from "@/lib/auth-client"
 import { LOGOUT_STYLIST } from "@/lib/graphql/queries/user"
+import { captureEvent, resetPostHog } from "@/lib/posthog/client"
 
 /**
  * Full logout: GraphQL stylist session (best-effort), clear local id,
@@ -17,6 +18,10 @@ export async function signOutFully() {
         : null)
     const token = session.data?.user?.mpfAccessToken
     const apiUrl = process.env.NEXT_PUBLIC_MPF_API_URL
+
+    captureEvent("user_logged_out", {
+      email: session.data?.user?.email ?? undefined,
+    })
 
     if (sessionId && token && apiUrl) {
       await fetch(apiUrl, {
@@ -40,4 +45,5 @@ export async function signOutFully() {
   }
 
   await authClient.signOut()
+  resetPostHog()
 }

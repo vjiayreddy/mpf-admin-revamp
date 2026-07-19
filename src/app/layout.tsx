@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 
 import { NetworkStatusUi } from "@/components/network/network-status-ui"
 import { NetworkStatusProvider } from "@/components/providers/network-status-provider"
+import { PostHogTracker } from "@/components/providers/posthog-tracker"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -49,6 +50,7 @@ export default function RootLayout({
           <NetworkStatusProvider>
             <ApolloAppProvider>
               <TooltipProvider>
+                <PostHogTracker />
                 <NetworkStatusUi />
                 {children}
                 <Toaster />
