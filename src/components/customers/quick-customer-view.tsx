@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { useMutation, useQuery } from "@apollo/client/react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { MessageCircleIcon, PhoneIcon } from "lucide-react"
+import Link from "next/link"
+import { ExternalLinkIcon, MessageCircleIcon, PhoneIcon } from "lucide-react"
 import { Controller, useForm } from "react-hook-form"
 
 import { StylistSearchSelect } from "@/components/customers/stylist-search-select"
@@ -322,7 +323,7 @@ export function QuickCustomerView({
                     </Badge>
                   ) : null}
                 </div>
-                <div className="mt-1 flex gap-2">
+                <div className="mt-1 flex flex-wrap gap-2">
                   <Button
                     type="button"
                     size="sm"
@@ -342,6 +343,16 @@ export function QuickCustomerView({
                   >
                     <PhoneIcon />
                     Call
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    nativeButton={false}
+                    render={<Link href={`/customers/${user._id}`} />}
+                    onClick={() => onOpenChange(false)}
+                  >
+                    <ExternalLinkIcon />
+                    Full profile
                   </Button>
                 </div>
               </div>
