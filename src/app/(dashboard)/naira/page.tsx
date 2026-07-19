@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { NairaPageClient } from "./naira-page-client"
 
 export default function NairaPage() {
-  return <PlaceholderPage title="Chat with Naira" />
+  return <NairaPageClient />
 }
