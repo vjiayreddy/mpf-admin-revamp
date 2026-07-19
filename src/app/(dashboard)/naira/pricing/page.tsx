@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { NairaPricingPageClient } from "./naira-pricing-page-client"
 
 export default function NairaPricingPage() {
-  return <PlaceholderPage title="Naira pricing" />
+  return <NairaPricingPageClient />
 }
