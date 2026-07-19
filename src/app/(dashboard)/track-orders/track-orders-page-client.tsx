@@ -23,6 +23,10 @@ import {
   ProductionStatusDialog,
   type ProductionStatusTarget,
 } from "@/components/track-orders/production-status-dialog"
+import {
+  StyleFormView,
+  type StyleFormViewTarget,
+} from "@/components/track-orders/style-form-view"
 import { TrackOrdersFilterBar } from "@/components/track-orders/track-orders-filter-bar"
 import { DataGrid } from "@/components/data-grid/data-grid"
 import { DataGridPagination } from "@/components/data-grid/data-grid-pagination"
@@ -120,6 +124,10 @@ export function TrackOrdersPageClient() {
     item: StoreOrderItem
   } | null>(null)
 
+  const [styleFormOpen, setStyleFormOpen] = useState(false)
+  const [styleFormTarget, setStyleFormTarget] =
+    useState<StyleFormViewTarget | null>(null)
+
   const [detailRefreshNonce, setDetailRefreshNonce] = useState(0)
   const [detailHeights, setDetailHeights] = useState<Record<string, number>>(
     {}
@@ -211,8 +219,25 @@ export function TrackOrdersPageClient() {
         })
         setProductionOpen(true)
       },
+      onItemAction: (action, orderId, orderNo, item) => {
+        if (action !== "stylingForm") return
+        const order = list.rows.find((row) => row._id === orderId)
+        setStyleFormTarget({
+          orderId,
+          orderNo: orderNo ?? order?.orderNo,
+          customerId: order?.customerId,
+          customerName: customerFullName(
+            order?.customerFirstName,
+            order?.customerLastName
+          ),
+          stylistName: order?.stylist?.[0]?.name?.trim() || null,
+          orderDate: order?.orderDate,
+          item,
+        })
+        setStyleFormOpen(true)
+      },
     }),
-    [detailRefreshNonce, onDetailHeight]
+    [detailRefreshNonce, list.rows, onDetailHeight]
   )
 
   const columnDefs = useMemo<ColDef<TrackOrderGridRow>[]>(
@@ -556,6 +581,15 @@ export function TrackOrdersPageClient() {
         }}
         onUpdated={() => {
           setDetailRefreshNonce((n) => n + 1)
+        }}
+      />
+
+      <StyleFormView
+        open={styleFormOpen}
+        target={styleFormTarget}
+        onOpenChange={(next) => {
+          setStyleFormOpen(next)
+          if (!next) setStyleFormTarget(null)
         }}
       />
     </div>

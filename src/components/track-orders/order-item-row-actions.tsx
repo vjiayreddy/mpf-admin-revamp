@@ -22,6 +22,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { StoreOrderItem } from "@/lib/apollo/queries/store-orders"
+import { hasStyleDesign } from "@/lib/track-orders/product-cat-id"
+import { cn } from "@/lib/utils"
 
 export type OrderItemRowAction =
   | "stylingForm"
@@ -49,6 +51,7 @@ export function OrderItemRowActions({
   const run = (action: OrderItemRowAction) => {
     onAction?.(action, item)
   }
+  const stylingAvailable = hasStyleDesign(item.styleDesign)
 
   return (
     <DropdownMenu>
@@ -74,9 +77,26 @@ export function OrderItemRowActions({
       >
         <DropdownMenuGroup>
           <DropdownMenuLabel>Styling &amp; measurement</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => run("stylingForm")}>
-            <SparklesIcon className="size-4" />
+          <DropdownMenuItem
+            disabled={!stylingAvailable}
+            onClick={() => {
+              if (!stylingAvailable) return
+              run("stylingForm")
+            }}
+            className={cn(stylingAvailable && "text-[#2f6f8f]")}
+          >
+            <SparklesIcon
+              className={cn(
+                "size-4",
+                stylingAvailable ? "text-amber-500" : undefined
+              )}
+            />
             Styling form
+            {!stylingAvailable ? (
+              <span className="text-muted-foreground ml-auto text-[10px]">
+                N/A
+              </span>
+            ) : null}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => run("measurementView")}>
             <EyeIcon className="size-4" />

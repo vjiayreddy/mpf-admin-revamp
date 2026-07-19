@@ -177,7 +177,7 @@ export type GetStoreOrderByIdData = {
   getStoreOrderById: StoreOrderDetail | null
 }
 
-/** Detail expand payload — items only, no payments / styleDesign trees. */
+/** Detail expand payload — items + slim styleDesign (no payments / lookbooks). */
 export type StoreOrderItemsDetail = {
   _id: string
   orderNo?: string | number | null
@@ -354,6 +354,7 @@ export const GET_STORE_ORDER_ITEMS_FOR_DETAIL = gql`
         productionStatus
         measurementApprovalStatus
         trackingNote
+        itemCatId
         readyItemImage
         fabricImage
         referenceImage
@@ -369,6 +370,18 @@ export const GET_STORE_ORDER_ITEMS_FOR_DETAIL = gql`
         fabricWorkshopName
         stitchingWorkshopId
         stitchingWorkshopName
+        styleDesign {
+          note
+          handDesign
+          monogramLetter
+          styleAttributes {
+            catId
+            image
+            master_name
+            name
+            value
+          }
+        }
         trialDate {
           ${DATE_TIME_FIELDS}
         }
