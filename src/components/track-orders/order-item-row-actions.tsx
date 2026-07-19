@@ -22,7 +22,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { StoreOrderItem } from "@/lib/apollo/queries/store-orders"
-import { hasStyleDesign } from "@/lib/track-orders/product-cat-id"
+import {
+  hasStyleDesign,
+  resolveProductCatId,
+} from "@/lib/track-orders/product-cat-id"
 import { cn } from "@/lib/utils"
 
 export type OrderItemRowAction =
@@ -40,18 +43,23 @@ export type OrderItemRowAction =
 
 export type OrderItemRowActionsProps = {
   item: StoreOrderItem
+  /** Order customer userId — needed to enable measurement actions. */
+  userId?: string | null
   /** Wired step-by-step; unused actions no-op for now. */
   onAction?: (action: OrderItemRowAction, item: StoreOrderItem) => void
 }
 
 export function OrderItemRowActions({
   item,
+  userId,
   onAction,
 }: OrderItemRowActionsProps) {
   const run = (action: OrderItemRowAction) => {
     onAction?.(action, item)
   }
   const stylingAvailable = hasStyleDesign(item.styleDesign)
+  const catId = resolveProductCatId(item.itemName, item.itemCatId)
+  const measurementAvailable = Boolean(userId?.trim() && catId)
 
   return (
     <DropdownMenu>
@@ -98,13 +106,35 @@ export function OrderItemRowActions({
               </span>
             ) : null}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => run("measurementView")}>
+          <DropdownMenuItem
+            disabled={!measurementAvailable}
+            onClick={() => {
+              if (!measurementAvailable) return
+              run("measurementView")
+            }}
+          >
             <EyeIcon className="size-4" />
             Measurement view
+            {!measurementAvailable ? (
+              <span className="text-muted-foreground ml-auto text-[10px]">
+                N/A
+              </span>
+            ) : null}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => run("measurementEdit")}>
+          <DropdownMenuItem
+            disabled={!measurementAvailable}
+            onClick={() => {
+              if (!measurementAvailable) return
+              run("measurementEdit")
+            }}
+          >
             <RulerIcon className="size-4" />
             Measurement edit
+            {!measurementAvailable ? (
+              <span className="text-muted-foreground ml-auto text-[10px]">
+                N/A
+              </span>
+            ) : null}
           </DropdownMenuItem>
         </DropdownMenuGroup>
 
