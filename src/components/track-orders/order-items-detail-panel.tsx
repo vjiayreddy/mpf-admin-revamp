@@ -16,7 +16,9 @@ import {
   type GetStoreOrderByIdVars,
   type GetStoreOrderItemsDetailData,
   type StoreOrderItem,
+  type StoreOrderQualityCheckRef,
 } from "@/lib/apollo/queries/store-orders"
+import { findOrderQualityCheck } from "@/lib/quality-check/helpers"
 import {
   GET_BODY_PROFILE,
   bodyProfileImageUrls,
@@ -114,7 +116,8 @@ export type OrderItemsDetailPanelContext = {
     action: OrderItemRowAction,
     orderId: string,
     orderNo: string | number | null | undefined,
-    item: StoreOrderItem
+    item: StoreOrderItem,
+    meta?: { qualityCheckId?: string | null }
   ) => void
   onDetailHeight?: (orderId: string, height: number) => void
   refreshNonce?: number
@@ -348,6 +351,9 @@ export function OrderItemsDetailPanel(params: OrderItemsDetailPanelProps) {
     params.data?.refreshNonce ?? context.refreshNonce ?? 0
 
   const [items, setItems] = useState<StoreOrderItem[] | null>(null)
+  const [qualityChecks, setQualityChecks] = useState<
+    StoreOrderQualityCheckRef[]
+  >([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [clientImages, setClientImages] = useState<string[]>([])
@@ -426,6 +432,7 @@ export function OrderItemsDetailPanel(params: OrderItemsDetailPanelProps) {
     setLoading(true)
     setError(null)
     setItems(null)
+    setQualityChecks([])
     lastReportedHeight.current = null
     reportHeight(detailRowHeightForCount(null, true))
 
@@ -437,8 +444,10 @@ export function OrderItemsDetailPanel(params: OrderItemsDetailPanelProps) {
       })
       .then((result) => {
         if (cancelled) return
-        const next = result.data?.getStoreOrderById?.orderItems ?? []
+        const order = result.data?.getStoreOrderById
+        const next = order?.orderItems ?? []
         setItems(next)
+        setQualityChecks(order?.orderQualityChecks ?? [])
         setLoading(false)
         reportHeight(detailRowHeightForCount(next.length, false))
       })
@@ -594,13 +603,22 @@ export function OrderItemsDetailPanel(params: OrderItemsDetailPanelProps) {
                         <OrderItemRowActions
                           item={item}
                           userId={userId}
+                          qualityCheckId={
+                            findOrderQualityCheck(qualityChecks, item.itemNumber)
+                              ?._id
+                          }
                           onAction={(action, rowItem) => {
                             if (!orderId) return
+                            const qc = findOrderQualityCheck(
+                              qualityChecks,
+                              rowItem.itemNumber
+                            )
                             context.onItemAction?.(
                               action,
                               orderId,
                               orderNo,
-                              rowItem
+                              rowItem,
+                              { qualityCheckId: qc?._id }
                             )
                           }}
                         />
