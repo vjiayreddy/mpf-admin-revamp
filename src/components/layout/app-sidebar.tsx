@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Scissors } from "lucide-react"
 
-import { authClient } from "@/lib/auth-client"
+import { signOutFully } from "@/lib/auth/sign-out"
 import { NavMain } from "@/components/layout/nav-main"
 import {
   Sidebar,
@@ -21,12 +21,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter()
 
   async function handleSignOut() {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("active_session_id")
+    try {
+      await signOutFully()
+    } finally {
+      router.push("/login")
+      router.refresh()
     }
-    await authClient.signOut()
-    router.push("/login")
-    router.refresh()
   }
 
   return (

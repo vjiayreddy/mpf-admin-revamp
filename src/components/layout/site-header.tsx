@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 
-import { authClient } from "@/lib/auth-client"
-import { LOGOUT_STYLIST } from "@/lib/graphql/queries/user"
+import { signOutFully } from "@/lib/auth/sign-out"
 import { getPageTitle } from "@/config/navigation"
+import { HealthStatusPopover } from "@/components/health/health-status-popover"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -44,38 +44,8 @@ export function SiteHeader({ userName, userEmail, userImage }: SiteHeaderProps) 
 
   async function handleSignOut() {
     try {
-      const session = await authClient.getSession()
-      const sessionId =
-        session.data?.user?.activeStylistSessionId ||
-        (typeof window !== "undefined"
-          ? window.localStorage.getItem("active_session_id")
-          : null)
-      const token = session.data?.user?.mpfAccessToken
-      const apiUrl = process.env.NEXT_PUBLIC_MPF_API_URL
-
-      if (sessionId && token && apiUrl) {
-        await fetch(apiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            query: LOGOUT_STYLIST,
-            variables: { sessionId },
-          }),
-        }).catch(() => undefined)
-      }
-
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("active_session_id")
-      }
-
-      await authClient.signOut()
-      router.push("/login")
-      router.refresh()
-    } catch {
-      await authClient.signOut()
+      await signOutFully()
+    } finally {
       router.push("/login")
       router.refresh()
     }
@@ -87,6 +57,7 @@ export function SiteHeader({ userName, userEmail, userImage }: SiteHeaderProps) 
       <Separator orientation="vertical" className="mr-2 !h-4" />
       <h1 className="text-sm font-medium tracking-tight">{title}</h1>
       <div className="ml-auto flex items-center gap-2">
+        <HealthStatusPopover />
         <Button
           variant="ghost"
           size="icon"

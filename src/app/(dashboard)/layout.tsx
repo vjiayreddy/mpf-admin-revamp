@@ -1,3 +1,4 @@
+import { SessionGuard } from "@/components/auth/session-guard"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SiteHeader } from "@/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -20,6 +21,7 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider>
+      <SessionGuard />
       <AppSidebar />
       <SidebarInset>
         <SiteHeader
