@@ -29,6 +29,11 @@ import {
   type MeasurementViewTarget,
 } from "@/components/measurements/measurement-view"
 import {
+  QualityCheckView,
+  openQualityCheckEdit,
+  type QualityCheckViewTarget,
+} from "@/components/quality-check/quality-check-view"
+import {
   StyleFormView,
   type StyleFormViewTarget,
 } from "@/components/track-orders/style-form-view"
@@ -138,6 +143,9 @@ export function TrackOrdersPageClient() {
   const [measurementTarget, setMeasurementTarget] =
     useState<MeasurementViewTarget | null>(null)
 
+  const [qcOpen, setQcOpen] = useState(false)
+  const [qcTarget, setQcTarget] = useState<QualityCheckViewTarget | null>(null)
+
   const [detailRefreshNonce, setDetailRefreshNonce] = useState(0)
   const [detailHeights, setDetailHeights] = useState<Record<string, number>>(
     {}
@@ -229,7 +237,7 @@ export function TrackOrdersPageClient() {
         })
         setProductionOpen(true)
       },
-      onItemAction: (action, orderId, orderNo, item) => {
+      onItemAction: (action, orderId, orderNo, item, meta) => {
         const order = list.rows.find((row) => row._id === orderId)
         if (action === "stylingForm") {
           setStyleFormTarget({
@@ -245,6 +253,35 @@ export function TrackOrdersPageClient() {
             item,
           })
           setStyleFormOpen(true)
+          return
+        }
+
+        if (action === "qcView") {
+          const qcId = meta?.qualityCheckId?.trim()
+          if (!qcId) return
+          setQcTarget({
+            orderQualityCheckId: qcId,
+            orderId,
+            orderNo: orderNo ?? order?.orderNo,
+            customerName: customerFullName(
+              order?.customerFirstName,
+              order?.customerLastName
+            ),
+            itemName: item.itemName,
+            itemNumber: item.itemNumber,
+          })
+          setQcOpen(true)
+          return
+        }
+
+        if (action === "qcEdit") {
+          const qcId = meta?.qualityCheckId?.trim()
+          if (!qcId) return
+          openQualityCheckEdit({
+            orderItemId: item._id,
+            orderItemNumber: item.itemNumber,
+            qcItemId: qcId,
+          })
           return
         }
 
@@ -637,6 +674,15 @@ export function TrackOrdersPageClient() {
         onOpenChange={(next) => {
           setMeasurementOpen(next)
           if (!next) setMeasurementTarget(null)
+        }}
+      />
+
+      <QualityCheckView
+        open={qcOpen}
+        target={qcTarget}
+        onOpenChange={(next) => {
+          setQcOpen(next)
+          if (!next) setQcTarget(null)
         }}
       />
     </div>

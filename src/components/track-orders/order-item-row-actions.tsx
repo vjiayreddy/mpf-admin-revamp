@@ -45,6 +45,8 @@ export type OrderItemRowActionsProps = {
   item: StoreOrderItem
   /** Order customer userId — needed to enable measurement actions. */
   userId?: string | null
+  /** Existing QC document id for this itemNumber, if any. */
+  qualityCheckId?: string | null
   /** Wired step-by-step; unused actions no-op for now. */
   onAction?: (action: OrderItemRowAction, item: StoreOrderItem) => void
 }
@@ -52,6 +54,7 @@ export type OrderItemRowActionsProps = {
 export function OrderItemRowActions({
   item,
   userId,
+  qualityCheckId,
   onAction,
 }: OrderItemRowActionsProps) {
   const run = (action: OrderItemRowAction) => {
@@ -60,6 +63,7 @@ export function OrderItemRowActions({
   const stylingAvailable = hasStyleDesign(item.styleDesign)
   const catId = resolveProductCatId(item.itemName, item.itemCatId)
   const measurementAvailable = Boolean(userId?.trim() && catId)
+  const qcAvailable = Boolean(qualityCheckId?.trim())
 
   return (
     <DropdownMenu>
@@ -142,13 +146,35 @@ export function OrderItemRowActions({
 
         <DropdownMenuGroup>
           <DropdownMenuLabel>QC &amp; trial</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => run("qcView")}>
+          <DropdownMenuItem
+            disabled={!qcAvailable}
+            onClick={() => {
+              if (!qcAvailable) return
+              run("qcView")
+            }}
+          >
             <EyeIcon className="size-4" />
             QC view
+            {!qcAvailable ? (
+              <span className="text-muted-foreground ml-auto text-[10px]">
+                N/A
+              </span>
+            ) : null}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => run("qcEdit")}>
+          <DropdownMenuItem
+            disabled={!qcAvailable}
+            onClick={() => {
+              if (!qcAvailable) return
+              run("qcEdit")
+            }}
+          >
             <ClipboardCheckIcon className="size-4" />
             QC edit
+            {!qcAvailable ? (
+              <span className="text-muted-foreground ml-auto text-[10px]">
+                N/A
+              </span>
+            ) : null}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => run("trialView")}>
             <EyeIcon className="size-4" />

@@ -177,11 +177,18 @@ export type GetStoreOrderByIdData = {
   getStoreOrderById: StoreOrderDetail | null
 }
 
+export type StoreOrderQualityCheckRef = {
+  _id: string
+  qualityCheckStatus?: string | null
+  itemNumber?: string | number | null
+}
+
 /** Detail expand payload — items + slim styleDesign (no payments / lookbooks). */
 export type StoreOrderItemsDetail = {
   _id: string
   orderNo?: string | number | null
   orderItems?: StoreOrderItem[] | null
+  orderQualityChecks?: StoreOrderQualityCheckRef[] | null
 }
 
 export type GetStoreOrderItemsDetailData = {
@@ -343,6 +350,11 @@ export const GET_STORE_ORDER_ITEMS_FOR_DETAIL = gql`
     getStoreOrderById(orderId: $orderId) {
       _id
       orderNo
+      orderQualityChecks {
+        _id
+        qualityCheckStatus
+        itemNumber
+      }
       orderItems {
         _id
         itemName
