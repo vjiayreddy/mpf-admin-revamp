@@ -1,15 +1,15 @@
 import { Suspense } from "react"
 
-import { CifPageClient } from "./cif-page-client"
+import { CustomerCifPageClient } from "./customer-cif-page-client"
 
-export default function CifPage() {
+export default function CustomerCifPage() {
   return (
     <Suspense
       fallback={
         <div className="text-muted-foreground text-sm">Loading CIF…</div>
       }
     >
-      <CifPageClient />
+      <CustomerCifPageClient />
     </Suspense>
   )
 }

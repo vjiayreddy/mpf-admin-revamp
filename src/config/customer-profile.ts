@@ -63,7 +63,7 @@ export const CUSTOMER_MODULE_SHORTCUTS: CustomerModuleShortcut[] = [
   },
   {
     title: "CIF",
-    href: () => `/cif`,
+    href: (userId) => `/customers/${userId}/cif`,
     icon: FormInput,
   },
   {
