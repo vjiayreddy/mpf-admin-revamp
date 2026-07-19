@@ -10,6 +10,7 @@ type ReceiptImagePreviewProps = {
   images: string[]
   initialIndex?: number
   onOpenChange: (open: boolean) => void
+  ariaLabel?: string
 }
 
 export function ReceiptImagePreview({
@@ -17,6 +18,7 @@ export function ReceiptImagePreview({
   images,
   initialIndex = 0,
   onOpenChange,
+  ariaLabel = "Image preview",
 }: ReceiptImagePreviewProps) {
   const [index, setIndex] = useState(initialIndex)
 
@@ -64,8 +66,8 @@ export function ReceiptImagePreview({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Receipt screenshot preview"
-      className="fixed inset-0 z-50 flex flex-col bg-black/90"
+      aria-label={ariaLabel}
+      className="fixed inset-0 z-[100] flex flex-col bg-black/90"
       onClick={close}
     >
       <div
@@ -122,6 +124,31 @@ export function ReceiptImagePreview({
           </Button>
         ) : null}
       </div>
+
+      {images.length > 1 ? (
+        <div
+          className="flex justify-center gap-2 overflow-x-auto px-4 pb-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {images.map((url, i) => (
+            <button
+              key={`${url}-${i}`}
+              type="button"
+              onClick={() => setIndex(i)}
+              className={
+                i === index
+                  ? "size-14 shrink-0 overflow-hidden rounded-md border-2 border-white opacity-100"
+                  : "size-14 shrink-0 overflow-hidden rounded-md border-2 border-transparent opacity-60 hover:opacity-100"
+              }
+              aria-label={`Show image ${i + 1}`}
+              aria-current={i === index}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="" className="size-full object-cover" />
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
