@@ -151,6 +151,17 @@
   align-items: center;
 }
 
+/* Embroidery list — taller rows so fabric/ref thumbs clear cell borders */
+.mpf-data-grid.mpf-embroidery-grid .ag-cell {
+  display: flex;
+  align-items: center;
+}
+.mpf-data-grid.mpf-embroidery-grid .ag-cell-wrapper {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
 /* Subtle AG Grid emphasis — no heavy badge UI */
 .mpf-data-grid .mpf-cell-overdue {
   font-weight: 600;
@@ -380,3 +391,4 @@
   height: 0.35rem;
   animation: speech-wave 0.9s ease-in-out infinite;
 }
+

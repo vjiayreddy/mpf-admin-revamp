@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { useApolloClient, useMutation } from "@apollo/client/react"
 import type { ICellRendererParams } from "ag-grid-community"
-import { Loader2Icon, PencilIcon } from "lucide-react"
+import { CheckIcon, Loader2Icon, PencilIcon } from "lucide-react"
 
 import { OrderItemRowActions, type OrderItemRowAction } from "@/components/track-orders/order-item-row-actions"
 import { ReceiptImagePreview } from "@/components/receipts/receipt-image-preview"
@@ -722,7 +722,14 @@ export function OrderItemsDetailPanel(params: OrderItemsDetailPanelProps) {
                         {item.stitchingWorkshopName || "—"}
                       </td>
                       <td className="overflow-hidden px-2 py-1.5 align-middle whitespace-nowrap">
-                        {item.hasEmbroidary ? "Yes" : "No"}
+                        {item.hasEmbroidary ? (
+                          <CheckIcon
+                            className="size-4 text-emerald-700 dark:text-emerald-400"
+                            aria-label="Has embroidery"
+                          />
+                        ) : (
+                          "No"
+                        )}
                       </td>
                       <td
                         className="overflow-hidden truncate px-2 py-1.5 align-middle"

@@ -5,7 +5,7 @@ import type {
   ICellRendererParams,
   ValueGetterParams,
 } from "ag-grid-community"
-import { PencilIcon } from "lucide-react"
+import { CheckIcon, PencilIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import type { StoreOrderItem } from "@/lib/apollo/queries/store-orders"
@@ -230,9 +230,16 @@ export function buildOrderItemColumnDefs(
       minWidth: 70,
       maxWidth: 80,
       valueGetter: (p: ValueGetterParams<StoreOrderItem>) =>
-        p.data?.hasEmbroidary ? "Yes" : "No",
-      cellClass: (p) =>
-        cn(p.value === "Yes" && "text-emerald-700 dark:text-emerald-400"),
+        p.data?.hasEmbroidary ? 1 : 0,
+      cellRenderer: (p: ICellRendererParams<StoreOrderItem>) => {
+        if (!p.data?.hasEmbroidary) return <span>No</span>
+        return (
+          <CheckIcon
+            className="size-4 text-emerald-700 dark:text-emerald-400"
+            aria-label="Has embroidery"
+          />
+        )
+      },
     },
     {
       headerName: "Note",

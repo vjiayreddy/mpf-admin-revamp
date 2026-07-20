@@ -1,6 +1,6 @@
 "use client"
 
-import { useId, useMemo, useState } from "react"
+import { useEffect, useId, useMemo, useState } from "react"
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -30,12 +30,18 @@ export function StylistSearchSelect({
   stylists,
   value,
   onChange,
-  loading,
-  disabled,
+  loading = false,
+  disabled = false,
 }: StylistSearchSelectProps) {
   const id = useId()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
+  // Apollo `loading` differs SSR vs client — defer until mounted to avoid hydration mismatch.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  const showLoading = mounted && loading
 
   const selected = useMemo(
     () => stylists.find((s) => s._id === value) ?? null,
@@ -72,7 +78,7 @@ export function StylistSearchSelect({
           id={id}
           type="button"
           aria-label={label || "Select stylist"}
-          disabled={disabled || loading}
+          disabled={disabled || showLoading}
           className={cn(
             "border-input flex h-8 w-full items-center justify-between gap-2 rounded-lg border bg-transparent px-2.5 text-sm outline-none",
             "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
@@ -80,7 +86,7 @@ export function StylistSearchSelect({
           )}
         >
           <span className="truncate text-left">
-            {loading
+            {showLoading
               ? "Loading stylists…"
               : selected?.name || selected?.email || "Select stylist"}
           </span>
