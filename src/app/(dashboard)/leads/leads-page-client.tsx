@@ -362,6 +362,7 @@ export function LeadsPageClient() {
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
+          persistKey="leads"
           className="rounded-none border-0"
         />
         <DataGridPagination

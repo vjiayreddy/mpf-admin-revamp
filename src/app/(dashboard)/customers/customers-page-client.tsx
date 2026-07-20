@@ -323,6 +323,7 @@ export function CustomersPageClient() {
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
+          persistKey="customers"
           className="rounded-none border-0"
         />
         <DataGridPagination

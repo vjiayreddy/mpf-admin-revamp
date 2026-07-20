@@ -256,6 +256,7 @@ export function MeasurementsPageClient() {
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
+          persistKey="measurements"
           className="rounded-none border-0"
         />
         <DataGridPagination

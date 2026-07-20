@@ -347,6 +347,7 @@ export function ClientConnectPageClient() {
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
+          persistKey="client-connect"
           className="rounded-none border-0"
           onRowDoubleClicked={(e) => {
             if (e.data?._id) openDiary(e.data._id)

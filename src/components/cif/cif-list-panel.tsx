@@ -359,6 +359,7 @@ export function CifListPanel({
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
+          persistKey="cif"
           className="rounded-none border-0"
         />
         <DataGridPagination

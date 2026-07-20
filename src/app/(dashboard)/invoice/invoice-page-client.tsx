@@ -210,6 +210,7 @@ export function InvoicePageClient() {
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
+          persistKey="invoice"
           className="rounded-none border-0"
         />
         <DataGridPagination

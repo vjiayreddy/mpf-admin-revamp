@@ -111,6 +111,7 @@ export function RolesPageClient() {
           quickFilterText={quickFilter}
           getRowId={(p) => p.data._id}
           heightClassName="h-[calc(100vh-16rem)]"
+          persistKey="roles"
         />
       )}
 

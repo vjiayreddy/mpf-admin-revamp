@@ -321,6 +321,7 @@ function TrialPageInner() {
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
+          persistKey="trial"
           className="rounded-none border-0"
           gridApiRef={gridApiRef}
         />

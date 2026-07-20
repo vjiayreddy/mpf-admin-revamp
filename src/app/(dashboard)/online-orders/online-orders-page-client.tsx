@@ -199,6 +199,7 @@ export function OnlineOrdersPageClient() {
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
           heightClassName="h-[calc(100vh-18rem)]"
+          persistKey="online-orders"
           className="rounded-none border-0"
         />
         <DataGridPagination
