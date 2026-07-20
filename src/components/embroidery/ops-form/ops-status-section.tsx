@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  ANY_DELAY_OPTIONS,
   APPROVAL_STATUS_OPTIONS,
   EMB_STATUS_OPTIONS,
   MARKING_STATUS_OPTIONS,
@@ -66,7 +67,7 @@ export function OpsStatusSection({ disabled }: OpsStatusSectionProps) {
   return (
     <section className="bg-card flex flex-col gap-4 rounded-lg border p-5">
       <h2 className="text-sm font-semibold tracking-tight">Status</h2>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatusSelect
           id="ops-emb-status"
           label="Emb status"
@@ -117,15 +118,14 @@ export function OpsStatusSection({ disabled }: OpsStatusSectionProps) {
             {...register("paperNo")}
           />
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="ops-any-delays">Any delays</Label>
-          <Input
-            id="ops-any-delays"
-            disabled={disabled}
-            {...register("anyDelays")}
-          />
-        </div>
-        <div className="flex flex-col gap-2 sm:col-span-2">
+        <StatusSelect
+          id="ops-any-delays"
+          label="Any delays"
+          name="anyDelays"
+          options={ANY_DELAY_OPTIONS}
+          disabled={disabled}
+        />
+        <div className="flex flex-col gap-2 sm:col-span-2 xl:col-span-3">
           <Label htmlFor="ops-marking-remarks">Marking remarks</Label>
           <Textarea
             id="ops-marking-remarks"
@@ -134,7 +134,7 @@ export function OpsStatusSection({ disabled }: OpsStatusSectionProps) {
             {...register("markingRemarks")}
           />
         </div>
-        <div className="flex flex-col gap-2 sm:col-span-2">
+        <div className="flex flex-col gap-2 sm:col-span-2 xl:col-span-3">
           <Label htmlFor="ops-approval-remarks">Approval remarks</Label>
           <Textarea
             id="ops-approval-remarks"
@@ -143,7 +143,7 @@ export function OpsStatusSection({ disabled }: OpsStatusSectionProps) {
             {...register("approvalRemarks")}
           />
         </div>
-        <div className="flex flex-col gap-2 sm:col-span-2">
+        <div className="flex flex-col gap-2 sm:col-span-2 xl:col-span-3">
           <Label htmlFor="ops-emb-remark">Emb remark</Label>
           <Textarea
             id="ops-emb-remark"
@@ -152,7 +152,7 @@ export function OpsStatusSection({ disabled }: OpsStatusSectionProps) {
             {...register("embRemark")}
           />
         </div>
-        <div className="flex flex-col gap-2 sm:col-span-2">
+        <div className="flex flex-col gap-2 sm:col-span-2 xl:col-span-3">
           <Label htmlFor="ops-note">Note</Label>
           <Textarea
             id="ops-note"

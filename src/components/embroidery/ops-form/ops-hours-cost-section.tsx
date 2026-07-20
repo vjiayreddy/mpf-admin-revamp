@@ -18,7 +18,7 @@ export function OpsHoursCostSection({ disabled }: OpsHoursCostSectionProps) {
       <h2 className="text-sm font-semibold tracking-tight">
         Hours, cost &amp; dates
       </h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor="ops-est-hrs">Est. hours</Label>
           <Input

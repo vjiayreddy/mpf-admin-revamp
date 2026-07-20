@@ -4,11 +4,12 @@ import { useEffect, useState } from "react"
 import { useLazyQuery } from "@apollo/client/react"
 import {
   DownloadIcon,
-  ExternalLinkIcon,
+  FilePenIcon,
   FileTextIcon,
   Loader2Icon,
   XIcon,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import { DesignSummaryBootas } from "@/components/embroidery/design-summary/bootas"
 import { DesignSummaryHeader } from "@/components/embroidery/design-summary/header"
@@ -48,6 +49,7 @@ export function EmbroideryDesignSummaryDialog({
   open,
   onOpenChange,
 }: EmbroideryDesignSummaryDialogProps) {
+  const router = useRouter()
   const [pdfBusy, setPdfBusy] = useState(false)
 
   const [fetchDetail, { data, loading, error }] = useLazyQuery<
@@ -118,14 +120,14 @@ export function EmbroideryDesignSummaryDialog({
                   variant="outline"
                   className="h-8"
                   onClick={() => {
-                    window.open(
-                      `/embroidery/form?id=${encodeURIComponent(row._id)}`,
-                      "_blank"
+                    onOpenChange(false)
+                    router.push(
+                      `/embroidery/form?id=${encodeURIComponent(row._id)}`
                     )
                   }}
                 >
-                  <ExternalLinkIcon className="size-3.5" />
-                  Ops form
+                  <FilePenIcon className="size-3.5" />
+                  Update form
                 </Button>
               ) : null}
               <Button

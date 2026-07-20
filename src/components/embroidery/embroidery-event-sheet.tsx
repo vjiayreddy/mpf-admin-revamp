@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { useLazyQuery, useMutation } from "@apollo/client/react"
 import { CheckIcon, Loader2Icon } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,6 +48,7 @@ export function EmbroideryEventSheet({
   onOpenChange,
   onSaved,
 }: EmbroideryEventSheetProps) {
+  const router = useRouter()
   const [embTrialDate, setEmbTrialDate] = useState("")
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -114,10 +116,8 @@ export function EmbroideryEventSheet({
 
   const openOpsForm = () => {
     if (!embroideryId) return
-    window.open(
-      `/embroidery/form?id=${encodeURIComponent(embroideryId)}`,
-      "_blank"
-    )
+    onOpenChange(false)
+    router.push(`/embroidery/form?id=${encodeURIComponent(embroideryId)}`)
   }
 
   const orderStatusLabel =
@@ -316,7 +316,7 @@ export function EmbroideryEventSheet({
             disabled={!embroideryId}
             onClick={openOpsForm}
           >
-            Open full form
+            Open update form
           </Button>
           <div className="flex gap-2">
             <Button

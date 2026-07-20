@@ -2,51 +2,55 @@
 
 import { Controller, useFormContext } from "react-hook-form"
 
+import { WorkAreaGroupedAutocomplete } from "@/components/embroidery/ops-form/work-area-grouped-autocomplete"
 import { Label } from "@/components/ui/label"
 import { WORK_TYPE_OPTIONS } from "@/config/embroidery-status"
-import type { EmbroideryOpsFormValues, WorkAreaOption } from "@/lib/embroidery/ops-form"
+import type {
+  EmbroideryOpsFormValues,
+  WorkAreaOption,
+} from "@/lib/embroidery/ops-form"
 import { cn } from "@/lib/utils"
-
-const selectClass = cn(
-  "border-input bg-transparent h-9 w-full rounded-lg border px-2.5 text-sm outline-none",
-  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-  "disabled:cursor-not-allowed disabled:opacity-50"
-)
 
 type OpsWorkSectionProps = {
   areaOptions: WorkAreaOption[]
   areasLoading: boolean
   disabled?: boolean
+  workAreasRequired?: boolean
 }
 
 export function OpsWorkSection({
   areaOptions,
   areasLoading,
   disabled,
+  workAreasRequired = true,
 }: OpsWorkSectionProps) {
-  const { control } = useFormContext<EmbroideryOpsFormValues>()
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext<EmbroideryOpsFormValues>()
 
-  const groups = areaOptions.reduce<Record<string, WorkAreaOption[]>>(
-    (acc, opt) => {
-      const key = opt.group || "Other"
-      if (!acc[key]) acc[key] = []
-      acc[key].push(opt)
-      return acc
-    },
-    {}
-  )
+  const workTypeError = errors.workType?.message
+  const workAreaError = errors.workAreaIds?.message
 
   return (
     <section className="bg-card flex flex-col gap-4 rounded-lg border p-5">
       <h2 className="text-sm font-semibold tracking-tight">Work</h2>
 
       <div className="flex flex-col gap-2">
-        <Label>Work type</Label>
+        <Label>
+          Work type
+          <span className="text-destructive ml-0.5">*</span>
+        </Label>
         <Controller
           name="workType"
           control={control}
           render={({ field }) => (
-            <div className="flex flex-wrap gap-3">
+            <div
+              className={cn(
+                "flex flex-wrap gap-3 rounded-lg",
+                workTypeError && "ring-destructive/40 ring-2 ring-offset-2"
+              )}
+            >
               {WORK_TYPE_OPTIONS.map((opt) => {
                 const checked = field.value.includes(opt.value)
                 return (
@@ -76,49 +80,29 @@ export function OpsWorkSection({
             </div>
           )}
         />
+        {workTypeError ? (
+          <p className="text-destructive text-xs" role="alert">
+            {workTypeError}
+          </p>
+        ) : null}
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="ops-work-areas">Work areas</Label>
-        <Controller
-          name="workAreaIds"
-          control={control}
-          render={({ field }) => (
-            <select
-              id="ops-work-areas"
-              multiple
-              disabled={disabled || areasLoading}
-              className={cn(selectClass, "h-36 py-2")}
-              value={field.value}
-              onChange={(e) => {
-                const selected = Array.from(e.target.selectedOptions).map(
-                  (o) => o.value
-                )
-                field.onChange(selected)
-              }}
-            >
-              {areasLoading ? (
-                <option disabled>Loading areas…</option>
-              ) : areaOptions.length === 0 ? (
-                <option disabled>No work areas for this product</option>
-              ) : (
-                Object.entries(groups).map(([group, opts]) => (
-                  <optgroup key={group} label={group}>
-                    {opts.map((opt) => (
-                      <option key={opt.id} value={opt.id}>
-                        {opt.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))
-              )}
-            </select>
-          )}
-        />
-        <p className="text-muted-foreground text-xs">
-          Hold Cmd/Ctrl to select multiple areas.
-        </p>
-      </div>
+      <Controller
+        name="workAreaIds"
+        control={control}
+        render={({ field }) => (
+          <WorkAreaGroupedAutocomplete
+            id="ops-work-areas"
+            options={areaOptions}
+            value={field.value}
+            onChange={field.onChange}
+            loading={areasLoading}
+            disabled={disabled}
+            error={workAreaError}
+            required={workAreasRequired}
+          />
+        )}
+      />
     </section>
   )
 }

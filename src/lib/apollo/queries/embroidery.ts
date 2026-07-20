@@ -74,7 +74,7 @@ export type EmbroideryListRow = {
   paperNo?: string | null
   paperHrs?: number | null
   sampleHrs?: number | null
-  anyDelays?: string | null
+  anyDelays?: string | boolean | null
   approvalRemarks?: string | null
   markingRemarks?: string | null
   estimatedCostOrPrice?: number | null

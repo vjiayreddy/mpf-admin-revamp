@@ -113,6 +113,7 @@ export const navigation: NavItem[] = [
     children: [
       { title: "List", href: "/embroidery" },
       { title: "Calendar", href: "/embroidery/calendar" },
+      { title: "Update form", href: "/embroidery/form" },
     ],
   },
   {

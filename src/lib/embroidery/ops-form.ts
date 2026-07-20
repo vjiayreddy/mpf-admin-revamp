@@ -44,7 +44,9 @@ export type EmbroideryOpsFormValues = {
 }
 
 export const embroideryOpsFormSchema = z.object({
-  workType: z.array(z.string()),
+  workType: z
+    .array(z.string())
+    .min(1, "At least one Work Type is required"),
   workAreaIds: z.array(z.string()),
   workshopIds: z.array(z.string()),
   machineWorkshopIds: z.array(z.string()),
@@ -72,6 +74,32 @@ export const embroideryOpsFormSchema = z.object({
   embReadyDate: z.string(),
   markingExpectedDate: z.string(),
 })
+
+/** Products where work area is optional (legacy OrderEmbroideryForm). */
+const WORK_AREA_OPTIONAL_CAT_IDS = new Set([
+  "5da7220571762c2a58b27a67", // trouser
+  "5da7220571762c2a58b27a6b", // chinos
+  "69c63bfd8aee6d261a428f25", // gurka pant
+  "621a34485417ab1e143a5245", // patiyala
+])
+
+export function isWorkAreaMandatory(catId?: string | null): boolean {
+  if (!catId?.trim()) return true
+  return !WORK_AREA_OPTIONAL_CAT_IDS.has(catId.trim())
+}
+
+/** Schema matching legacy design-form rules for shared ops fields. */
+export function createEmbroideryOpsFormSchema(workAreasRequired: boolean) {
+  return embroideryOpsFormSchema.superRefine((values, ctx) => {
+    if (workAreasRequired && values.workAreaIds.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["workAreaIds"],
+        message: "At least one Work Area is required",
+      })
+    }
+  })
+}
 
 export const emptyOpsFormValues = (): EmbroideryOpsFormValues => ({
   workType: [],
@@ -161,6 +189,28 @@ function numOrEmpty(value?: number | null): string {
   return value != null && !Number.isNaN(value) ? String(value) : ""
 }
 
+/** Normalize API anyDelays (boolean | string) to select value "true" | "false" | "". */
+function anyDelaysToSelectValue(value?: string | boolean | null): string {
+  if (value === true || value === "true" || value === "Yes" || value === "YES") {
+    return "true"
+  }
+  if (
+    value === false ||
+    value === "false" ||
+    value === "No" ||
+    value === "NO"
+  ) {
+    return "false"
+  }
+  return ""
+}
+
+function anyDelaysToPayload(value: string): boolean | null {
+  if (value === "true") return true
+  if (value === "false") return false
+  return null
+}
+
 function toNumber(value: string): number {
   const n = Number(value)
   return Number.isFinite(n) ? n : 0
@@ -224,7 +274,7 @@ export function resetOpsFormValues(
     embRemark: detail.embRemark ?? "",
     note: detail.note ?? "",
     paperNo: detail.paperNo ?? "",
-    anyDelays: detail.anyDelays ?? "",
+    anyDelays: anyDelaysToSelectValue(detail.anyDelays),
     markingRemarks: detail.markingRemarks ?? "",
     approvalRemarks: detail.approvalRemarks ?? "",
     estHrs: numOrEmpty(detail.estHrs),
@@ -267,7 +317,7 @@ export function buildOpsPayload(
     embRemark: emptyToNull(values.embRemark),
     note: emptyToNull(values.note),
     paperNo: emptyToNull(values.paperNo),
-    anyDelays: emptyToNull(values.anyDelays),
+    anyDelays: anyDelaysToPayload(values.anyDelays),
     markingRemarks: emptyToNull(values.markingRemarks),
     approvalRemarks: emptyToNull(values.approvalRemarks),
     estHrs: toNumber(values.estHrs),

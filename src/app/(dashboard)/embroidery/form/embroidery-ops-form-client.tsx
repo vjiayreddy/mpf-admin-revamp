@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo } from "react"
 import { useLazyQuery, useMutation } from "@apollo/client/react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2Icon } from "lucide-react"
+import { ArrowLeftIcon, Loader2Icon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { FormProvider, useForm } from "react-hook-form"
 
@@ -25,8 +25,9 @@ import {
 } from "@/lib/apollo/queries/embroidery"
 import {
   buildOpsPayload,
+  createEmbroideryOpsFormSchema,
   emptyOpsFormValues,
-  embroideryOpsFormSchema,
+  isWorkAreaMandatory,
   resetOpsFormValues,
   type EmbroideryOpsFormValues,
   type WorkAreaOption,
@@ -90,6 +91,8 @@ function OpsFormInner() {
   const { options: mappedAreas, loading: areasLoading } =
     useEmbroideryAreaMapping(catId, Boolean(detail))
 
+  const workAreasRequired = isWorkAreaMandatory(catId)
+
   const storedAreas = useMemo(
     () => parseStoredWorkAreas(detail?.workAreas),
     [detail?.workAreas]
@@ -105,7 +108,12 @@ function OpsFormInner() {
   }, [mappedAreas, storedAreas])
 
   const methods = useForm<EmbroideryOpsFormValues>({
-    resolver: zodResolver(embroideryOpsFormSchema),
+    resolver: async (values, context, options) =>
+      zodResolver(createEmbroideryOpsFormSchema(workAreasRequired))(
+        values,
+        context,
+        options
+      ),
     defaultValues: emptyOpsFormValues(),
   })
 
@@ -125,19 +133,24 @@ function OpsFormInner() {
     reset(resetOpsFormValues(detail))
   }, [detail, reset])
 
-  const onSubmit = handleSubmit(async (values) => {
-    if (!id) return
-    try {
-      const body = buildOpsPayload(values, areaOptions)
-      await saveEmbroidery({
-        variables: { id, body },
-      })
-      reset(values)
-      notify.success("Embroidery updated")
-    } catch (err) {
-      notify.fromError(err, "Failed to update embroidery")
+  const onSubmit = handleSubmit(
+    async (values) => {
+      if (!id) return
+      try {
+        const body = buildOpsPayload(values, areaOptions)
+        await saveEmbroidery({
+          variables: { id, body },
+        })
+        reset(values)
+        notify.success("Embroidery updated")
+      } catch (err) {
+        notify.fromError(err, "Failed to update embroidery")
+      }
+    },
+    () => {
+      notify.error("Please fix the highlighted fields")
     }
-  })
+  )
 
   const title = detail
     ? `Update embroidery · ${detail.embroideryReqNo || detail._id}`
@@ -145,24 +158,74 @@ function OpsFormInner() {
 
   if (!id) {
     return (
-      <p className="text-destructive text-sm" role="alert">
-        Missing embroidery id. Open this page from the list Product No link.
-      </p>
+      <div className="flex w-full flex-col gap-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Update embroidery form
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Open a job from the embroidery list to edit work, workshops,
+            statuses, and hours.
+          </p>
+        </div>
+        <div className="bg-card rounded-lg border p-6">
+          <p className="text-muted-foreground mb-4 text-sm">
+            No embroidery id in the URL. Pick a product from the list, or use
+            More → Update form.
+          </p>
+          <Button type="button" onClick={() => router.push("/embroidery")}>
+            Go to embroidery list
+          </Button>
+        </div>
+      </div>
     )
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 pb-24">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-          <p className="text-muted-foreground text-sm">
-            Update work, workshops, statuses, hours, and costs for this job.
-          </p>
+    <div className="flex w-full flex-col gap-4">
+      <div className="bg-background/95 sticky top-14 z-10 -mx-4 border-b px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="mt-0.5 size-8 shrink-0"
+              aria-label="Back to list"
+              onClick={() => router.push("/embroidery")}
+            >
+              <ArrowLeftIcon className="size-4" />
+            </Button>
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-semibold tracking-tight">
+                {title}
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Work, workshops, statuses, hours, and costs
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving}
+              onClick={() => router.push("/embroidery")}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={saving || !isDirty || !detail}
+              onClick={() => void onSubmit()}
+            >
+              {saving ? (
+                <Loader2Icon className="size-4 animate-spin" />
+              ) : null}
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </div>
         </div>
-        <Button type="button" variant="outline" onClick={() => router.back()}>
-          Back
-        </Button>
       </div>
 
       {loading && !detail ? (
@@ -181,35 +244,17 @@ function OpsFormInner() {
 
       {detail ? (
         <FormProvider {...methods}>
-          <form className="flex flex-col gap-5" onSubmit={onSubmit}>
+          <form className="flex w-full flex-col gap-4" onSubmit={onSubmit}>
             <OpsSummarySection detail={detail} />
             <OpsWorkSection
               areaOptions={areaOptions}
               areasLoading={areasLoading}
               disabled={saving}
+              workAreasRequired={workAreasRequired}
             />
             <OpsWorkshopsSection enabled disabled={saving} />
             <OpsStatusSection disabled={saving} />
             <OpsHoursCostSection disabled={saving} />
-
-            <div className="bg-background/95 supports-backdrop-filter:bg-background/80 fixed inset-x-0 bottom-0 z-20 border-t backdrop-blur">
-              <div className="mx-auto flex max-w-4xl items-center justify-end gap-2 px-4 py-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={saving}
-                  onClick={() => router.push("/embroidery")}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={saving || !isDirty}>
-                  {saving ? (
-                    <Loader2Icon className="size-4 animate-spin" />
-                  ) : null}
-                  {saving ? "Saving…" : "Save"}
-                </Button>
-              </div>
-            </div>
           </form>
         </FormProvider>
       ) : null}

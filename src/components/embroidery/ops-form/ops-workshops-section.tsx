@@ -1,10 +1,16 @@
 "use client"
 
+import { useMemo } from "react"
 import { Controller, useFormContext } from "react-hook-form"
 
+import {
+  GroupedMultiAutocomplete,
+  type GroupedMultiOption,
+} from "@/components/embroidery/ops-form/grouped-multi-autocomplete"
 import { Label } from "@/components/ui/label"
 import { useWorkshopsByType } from "@/hooks/use-workshops-by-type"
 import type { EmbroideryOpsFormValues } from "@/lib/embroidery/ops-form"
+import type { WorkshopOption } from "@/lib/apollo/queries/workshops"
 import { cn } from "@/lib/utils"
 
 const selectClass = cn(
@@ -18,7 +24,14 @@ type OpsWorkshopsSectionProps = {
   disabled?: boolean
 }
 
-function MultiWorkshopSelect({
+function workshopOptions(workshops: WorkshopOption[]): GroupedMultiOption[] {
+  return workshops.map((w) => ({
+    id: w._id,
+    name: w.name?.trim() || w.label?.trim() || w._id,
+  }))
+}
+
+function MultiWorkshopAutocomplete({
   id,
   label,
   name,
@@ -36,43 +49,29 @@ function MultiWorkshopSelect({
   const { control } = useFormContext<EmbroideryOpsFormValues>()
   const { workshops, loading } = useWorkshopsByType(workshopType, enabled)
 
+  const options = useMemo(() => workshopOptions(workshops), [workshops])
+
   return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Controller
-        name={name}
-        control={control}
-        render={({ field }) => (
-          <select
-            id={id}
-            multiple
-            disabled={disabled || loading}
-            className={cn(selectClass, "h-28 py-2")}
-            value={field.value}
-            onChange={(e) => {
-              field.onChange(
-                Array.from(e.target.selectedOptions).map((o) => o.value)
-              )
-            }}
-          >
-            {loading ? (
-              <option disabled>Loading workshops…</option>
-            ) : workshops.length === 0 ? (
-              <option disabled>No workshops found</option>
-            ) : (
-              workshops.map((w) => (
-                <option key={w._id} value={w._id}>
-                  {w.name || w.label || w._id}
-                </option>
-              ))
-            )}
-          </select>
-        )}
-      />
-      <p className="text-muted-foreground text-xs">
-        Hold Cmd/Ctrl to select multiple.
-      </p>
-    </div>
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => (
+        <GroupedMultiAutocomplete
+          id={id}
+          label={label}
+          options={options}
+          value={field.value}
+          onChange={field.onChange}
+          loading={loading}
+          disabled={disabled}
+          searchPlaceholder={`Search ${label.toLowerCase()}…`}
+          emptyPlaceholder="No workshops found"
+          noMatchPlaceholder="No workshops match"
+          loadingPlaceholder="Loading workshops…"
+          listMaxHeightClassName="max-h-40"
+        />
+      )}
+    />
   )
 }
 
@@ -87,10 +86,10 @@ export function OpsWorkshopsSection({
   )
 
   return (
-    <section className="bg-card flex flex-col gap-4 rounded-lg border p-5">
+    <section className="bg-card flex w-full flex-col gap-4 rounded-lg border p-5">
       <h2 className="text-sm font-semibold tracking-tight">Workshops</h2>
-      <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-3">
-        <MultiWorkshopSelect
+      <div className="flex w-full flex-col gap-4">
+        <MultiWorkshopAutocomplete
           id="ops-hand-workshops"
           label="Hand workshops"
           name="workshopIds"
@@ -98,7 +97,7 @@ export function OpsWorkshopsSection({
           enabled={enabled}
           disabled={disabled}
         />
-        <MultiWorkshopSelect
+        <MultiWorkshopAutocomplete
           id="ops-machine-workshops"
           label="Machine workshops"
           name="machineWorkshopIds"
@@ -106,7 +105,7 @@ export function OpsWorkshopsSection({
           enabled={enabled}
           disabled={disabled}
         />
-        <div className="flex flex-col gap-2">
+        <div className="flex w-full flex-col gap-2">
           <Label htmlFor="ops-computerized-workshop">
             Computerized workshop
           </Label>

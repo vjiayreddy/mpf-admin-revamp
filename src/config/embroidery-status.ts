@@ -81,6 +81,12 @@ export const WORK_TYPE_OPTIONS: EmbroideryStatusOption[] = [
   { value: "COMPUTERIZED", label: "Computerized" },
 ]
 
+/** Legacy EmbTrackForm anyDelay Yes/No (stored as boolean). */
+export const ANY_DELAY_OPTIONS: EmbroideryStatusOption[] = [
+  { value: "true", label: "Yes" },
+  { value: "false", label: "No" },
+]
+
 export const EMB_ORDER_STATUS_OPTIONS: EmbroideryStatusOption[] = [
   { value: "ALL", label: "All" },
   { value: "DRAFT", label: "Draft" },
