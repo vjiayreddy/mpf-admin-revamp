@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { LookbookPageClient } from "./lookbook-page-client"
 
 export default function LookbookPage() {
-  return <PlaceholderPage title="Look Book" />
+  return <LookbookPageClient />
 }
