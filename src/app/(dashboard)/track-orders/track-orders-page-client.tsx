@@ -31,7 +31,7 @@ import {
 } from "@/components/measurements/measurement-view"
 import {
   QualityCheckView,
-  openQualityCheckEdit,
+  qualityCheckFormHref,
   type QualityCheckViewTarget,
 } from "@/components/quality-check/quality-check-view"
 import {
@@ -310,11 +310,14 @@ export function TrackOrdersPageClient() {
         if (action === "qcEdit") {
           const qcId = meta?.qualityCheckId?.trim()
           if (!qcId) return
-          openQualityCheckEdit({
-            orderItemId: item._id,
-            orderItemNumber: item.itemNumber,
-            qcItemId: qcId,
-          })
+          router.push(
+            qualityCheckFormHref({
+              orderId,
+              orderItemId: item._id,
+              orderItemNumber: item.itemNumber,
+              qcItemId: qcId,
+            })
+          )
           return
         }
 

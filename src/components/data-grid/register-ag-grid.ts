@@ -13,6 +13,12 @@ import {
   ValueCacheModule,
   TooltipModule,
   QuickFilterModule,
+  TextEditorModule,
+  NumberEditorModule,
+  CheckboxEditorModule,
+  SelectEditorModule,
+  LargeTextEditorModule,
+  CustomEditorModule,
   enableDevValidations,
 } from "ag-grid-community"
 
@@ -41,5 +47,11 @@ export function ensureAgGridModules() {
     ValueCacheModule,
     TooltipModule,
     QuickFilterModule,
+    TextEditorModule,
+    NumberEditorModule,
+    CheckboxEditorModule,
+    SelectEditorModule,
+    LargeTextEditorModule,
+    CustomEditorModule,
   ])
 }

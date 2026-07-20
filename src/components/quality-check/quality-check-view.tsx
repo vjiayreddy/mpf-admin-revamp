@@ -310,23 +310,30 @@ export function QualityCheckView({
   )
 }
 
-/** Open QC edit placeholder until the form module ships. */
-export function openQualityCheckEdit(params: {
+/** Build the QC create/edit form href (same-tab navigation). */
+export function qualityCheckFormHref(params: {
+  orderId?: string | null
   orderItemId?: string | null
   orderItemNumber?: string | number | null
-  qcItemId: string
-}) {
-  const search = new URLSearchParams({
-    qcItemId: params.qcItemId,
-    tab: "edit",
-  })
+  qcItemId?: string | null
+}): string {
+  const search = new URLSearchParams()
+  if (params.qcItemId) search.set("qcItemId", params.qcItemId)
+  if (params.orderId) search.set("orderId", params.orderId)
   if (params.orderItemId) search.set("orderItemId", params.orderItemId)
   if (params.orderItemNumber != null && params.orderItemNumber !== "") {
     search.set("orderItemNumber", String(params.orderItemNumber))
   }
-  window.open(
-    `/quality-check?${search.toString()}`,
-    "_blank",
-    "noopener,noreferrer"
-  )
+  const qs = search.toString()
+  return qs ? `/quality-check/form?${qs}` : "/quality-check/form"
+}
+
+/** Navigate to QC form in the same tab. Prefer router.push(qualityCheckFormHref(...)). */
+export function openQualityCheckEdit(params: {
+  orderId?: string | null
+  orderItemId?: string | null
+  orderItemNumber?: string | number | null
+  qcItemId: string
+}) {
+  window.location.assign(qualityCheckFormHref(params))
 }
