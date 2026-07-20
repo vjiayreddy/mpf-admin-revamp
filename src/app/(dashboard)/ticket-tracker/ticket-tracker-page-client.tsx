@@ -295,6 +295,7 @@ export function TicketTrackerPageClient() {
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
+          persistKey="ticket-tracker"
           className="rounded-none border-0"
         />
         <DataGridPagination

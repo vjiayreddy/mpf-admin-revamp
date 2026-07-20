@@ -612,6 +612,7 @@ export function TrackOrdersPageClient() {
           }
           quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
+          persistKey="track-orders"
           className="rounded-none border-0"
           isFullWidthRow={isFullWidthRow}
           fullWidthCellRenderer={OrderItemsDetailPanel}

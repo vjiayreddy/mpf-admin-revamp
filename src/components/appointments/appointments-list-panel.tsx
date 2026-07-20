@@ -338,6 +338,7 @@ export function AppointmentsListPanel({
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
+          persistKey="appointments"
           className="rounded-none border-0"
         />
         <DataGridPagination

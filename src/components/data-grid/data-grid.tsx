@@ -15,6 +15,8 @@ import type {
 import { themeQuartz } from "ag-grid-community"
 
 import { ensureAgGridModules } from "@/components/data-grid/register-ag-grid"
+import { GridColumnsPresetMenu } from "@/components/data-grid/grid-columns-preset-menu"
+import { useGridColumnPersistence } from "@/hooks/use-grid-column-persistence"
 import { cn } from "@/lib/utils"
 
 ensureAgGridModules()
@@ -70,6 +72,13 @@ export type DataGridProps<TData> = {
   getRowClass?: (params: RowClassParams<TData>) => string | string[] | undefined
   onGridReady?: AgGridReactProps<TData>["onGridReady"]
   gridApiRef?: React.MutableRefObject<GridApi<TData> | null>
+  /**
+   * When set, column order/size/visibility/pin/sort are restored and
+   * auto-saved per signed-in user (prefs.db). Shows a Columns preset menu.
+   */
+  persistKey?: string
+  /** Hide the built-in Columns menu (still persists when `persistKey` is set). */
+  hidePresetMenu?: boolean
 }
 
 /**
@@ -98,9 +107,17 @@ export function DataGrid<TData>({
   getRowClass,
   onGridReady,
   gridApiRef,
+  persistKey,
+  hidePresetMenu = false,
 }: DataGridProps<TData>) {
   const gridRef = useRef<AgGridReact<TData>>(null)
   const autoHeight = domLayout === "autoHeight"
+
+  const persistence = useGridColumnPersistence<TData>({
+    persistKey,
+    gridApiRef,
+    onGridReady,
+  })
 
   const defaultColDef = useMemo<ColDef<TData>>(
     () => ({
@@ -121,50 +138,66 @@ export function DataGrid<TData>({
     [defaultColDefOverride]
   )
 
+  const showMenu = Boolean(persistKey) && !hidePresetMenu
+
   return (
     <div
       className={cn(
-        "mpf-data-grid bg-card w-full rounded-lg border",
+        "mpf-data-grid bg-card relative flex w-full flex-col rounded-lg border",
         autoHeight
           ? "h-auto min-h-0 overflow-x-auto overflow-y-hidden"
           : cn("overflow-hidden", heightClassName),
         className
       )}
     >
-      <AgGridReact<TData>
-        ref={gridRef}
-        theme={gridTheme}
-        rowData={rowData ?? []}
-        columnDefs={columnDefs}
-        defaultColDef={defaultColDef}
-        loading={loading}
-        getRowId={getRowId as (params: GetRowIdParams<TData>) => string}
-        onRowClicked={onRowClicked}
-        onRowDoubleClicked={onRowDoubleClicked}
-        quickFilterText={quickFilterText}
-        isFullWidthRow={isFullWidthRow}
-        fullWidthCellRenderer={fullWidthCellRenderer}
-        getRowHeight={getRowHeight}
-        embedFullWidthRows={embedFullWidthRows}
-        context={context}
-        getRowClass={getRowClass}
-        onGridReady={(e) => {
-          if (gridApiRef) gridApiRef.current = e.api
-          onGridReady?.(e)
-        }}
-        tooltipShowDelay={400}
-        tooltipHideDelay={10000}
-        animateRows={false}
-        rowBuffer={10}
-        debounceVerticalScrollbar
-        suppressCellFocus
-        enableCellTextSelection
-        ensureDomOrder
-        valueCache={false}
-        suppressScrollOnNewData
-        domLayout={domLayout}
-        alwaysShowHorizontalScroll={alwaysShowHorizontalScroll}
-      />
+      {showMenu && persistKey ? (
+        <div className="bg-muted/20 flex shrink-0 items-center justify-end border-b px-2 py-1.5">
+          <GridColumnsPresetMenu
+            gridKey={persistKey}
+            presets={persistence.presets}
+            onPresetsChange={persistence.setPresets}
+            getColumnState={persistence.getColumnState}
+            applyColumnState={persistence.applyColumnState}
+            onResetLayout={persistence.resetColumnState}
+          />
+        </div>
+      ) : null}
+      <div className={cn("min-h-0 w-full", autoHeight ? "h-auto" : "h-full flex-1")}>
+        <AgGridReact<TData>
+          ref={gridRef}
+          theme={gridTheme}
+          className="h-full w-full"
+          rowData={rowData ?? []}
+          columnDefs={columnDefs}
+          defaultColDef={defaultColDef}
+          loading={loading}
+          getRowId={getRowId as (params: GetRowIdParams<TData>) => string}
+          onRowClicked={onRowClicked}
+          onRowDoubleClicked={onRowDoubleClicked}
+          quickFilterText={quickFilterText}
+          isFullWidthRow={isFullWidthRow}
+          fullWidthCellRenderer={fullWidthCellRenderer}
+          getRowHeight={getRowHeight}
+          embedFullWidthRows={embedFullWidthRows}
+          context={context}
+          getRowClass={getRowClass}
+          onGridReady={persistence.handleGridReady}
+          maintainColumnOrder={persistence.maintainColumnOrder}
+          {...persistence.columnListeners}
+          tooltipShowDelay={400}
+          tooltipHideDelay={10000}
+          animateRows={false}
+          rowBuffer={10}
+          debounceVerticalScrollbar
+          suppressCellFocus
+          enableCellTextSelection
+          ensureDomOrder
+          valueCache={false}
+          suppressScrollOnNewData
+          domLayout={domLayout}
+          alwaysShowHorizontalScroll={alwaysShowHorizontalScroll}
+        />
+      </div>
     </div>
   )
 }

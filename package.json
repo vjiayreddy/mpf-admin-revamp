@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:push": "drizzle-kit push",
-    "db:push:health": "drizzle-kit push --config=drizzle.health.config.ts"
+    "db:push:health": "drizzle-kit push --config=drizzle.health.config.ts",
+    "db:push:prefs": "drizzle-kit push --config=drizzle.prefs.config.ts"
   },
   "dependencies": {
     "@apollo/client": "^4.2.7",

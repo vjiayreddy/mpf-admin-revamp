@@ -318,6 +318,7 @@ export function ReceiptsPageClient() {
           getRowId={(params) => params.data.paymentId}
           quickFilterText={pageQuickFilter}
           heightClassName={gridHeight}
+          persistKey="receipts"
           className="rounded-none border-0"
         />
         <DataGridPagination
