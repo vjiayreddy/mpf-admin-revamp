@@ -53,6 +53,7 @@ export type StoreOrderListRow = StoreOrderCalendarRow & {
   balanceAmount?: number | null
   isGroupCreated?: boolean | null
   readyDate?: StoreOrderTimestamp | null
+  deliveryDate?: StoreOrderTimestamp | null
   studio?: Array<{ _id?: string | null; name?: string | null } | null> | null
   /** Present when list query selects slim orderTrial. */
   orderTrial?: Pick<NestedOrderTrial, "_id"> | null
@@ -130,6 +131,7 @@ export type StoreOrderDetail = StoreOrderCalendarRow & {
   customerId?: string | null
   customerPhone?: string | null
   customerCountryCode?: string | null
+  personalStylistId?: string | null
   balanceAmount?: number | null
   orderTotal?: number | null
   eventDate?: StoreOrderTimestamp | null
@@ -202,6 +204,25 @@ export type StoreOrderQualityCheckRef = {
   _id: string
   qualityCheckStatus?: string | null
   itemNumber?: string | number | null
+}
+
+/** QC admin list — lean order headers + QC refs (no orderItems). */
+export type QualityCheckOrderRow = {
+  _id: string
+  userId?: string | null
+  customerId?: string | null
+  orderNo?: string | number | null
+  customerFirstName?: string | null
+  customerLastName?: string | null
+  orderDate?: StoreOrderTimestamp | null
+  trialDate?: StoreOrderTimestamp | null
+  deliveryDate?: StoreOrderTimestamp | null
+  stylist?: StoreOrderStylist[] | null
+  orderQualityChecks?: StoreOrderQualityCheckRef[] | null
+}
+
+export type GetQualityCheckOrdersListData = {
+  getAllStoreOrders: QualityCheckOrderRow[]
 }
 
 /** Detail expand payload — items + slim styleDesign (no payments / lookbooks). */
@@ -368,6 +389,42 @@ export const GET_TRACK_ORDERS_LIST = gql`
   }
 `
 
+/** Quality Check admin list — lean headers + nested QC refs only. */
+export const GET_QUALITY_CHECK_ORDERS_LIST = gql`
+  query GetQualityCheckOrdersList(
+    $params: StoreProductOrderFilterInputParams!
+    $page: Int
+    $limit: Int
+  ) {
+    getAllStoreOrders(params: $params, page: $page, limit: $limit) {
+      _id
+      userId
+      customerId
+      orderNo
+      customerFirstName
+      customerLastName
+      orderDate {
+        ${DATE_TIME_FIELDS}
+      }
+      trialDate {
+        ${DATE_TIME_FIELDS}
+      }
+      deliveryDate {
+        ${DATE_TIME_FIELDS}
+      }
+      stylist {
+        _id
+        name
+      }
+      orderQualityChecks {
+        _id
+        qualityCheckStatus
+        itemNumber
+      }
+    }
+  }
+`
+
 /** Trial module All Orders tab — includes nested orderTrial for view/enter. */
 export const GET_TRIAL_STORE_ORDERS = gql`
   query GetTrialStoreOrders(
@@ -472,6 +529,7 @@ export const GET_STORE_ORDER_BY_ID = gql`
       customerId
       customerPhone
       customerCountryCode
+      personalStylistId
       orderNo
       customerFirstName
       customerLastName

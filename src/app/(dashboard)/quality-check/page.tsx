@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { QualityCheckPageClient } from "@/app/(dashboard)/quality-check/quality-check-page-client"
 
 export default function QualityCheckPage() {
-  return <PlaceholderPage title="Quality Check" />
+  return <QualityCheckPageClient />
 }
