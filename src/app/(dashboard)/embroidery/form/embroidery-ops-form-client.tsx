@@ -1,39 +1,65 @@
 "use client"
 
-import { Suspense, useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo } from "react"
 import { useLazyQuery, useMutation } from "@apollo/client/react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Loader2Icon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { FormProvider, useForm } from "react-hook-form"
 
+import { OpsHoursCostSection } from "@/components/embroidery/ops-form/ops-hours-cost-section"
+import { OpsStatusSection } from "@/components/embroidery/ops-form/ops-status-section"
+import { OpsSummarySection } from "@/components/embroidery/ops-form/ops-summary-section"
+import { OpsWorkSection } from "@/components/embroidery/ops-form/ops-work-section"
+import { OpsWorkshopsSection } from "@/components/embroidery/ops-form/ops-workshops-section"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useEmbroideryAreaMapping } from "@/hooks/use-embroidery-area-mapping"
 import {
-  EMB_STATUS_OPTIONS,
-  MARKING_STATUS_OPTIONS,
-  PAPER_STATUS_OPTIONS,
-  QC_STATUS_OPTIONS,
-  SAMPLE_STATUS_OPTIONS,
-  APPROVAL_STATUS_OPTIONS,
-} from "@/config/embroidery-status"
-import { notify } from "@/lib/notify"
-import {
-  GET_EMBROIDERY_BY_ID,
+  GET_EMBROIDERY_OPS_BY_ID,
   SAVE_EMBROIDERY,
-  type GetEmbroideryByIdData,
   type GetEmbroideryByIdVars,
+  type GetEmbroideryOpsByIdData,
   type SaveEmbroideryData,
   type SaveEmbroideryVars,
 } from "@/lib/apollo/queries/embroidery"
 import {
-  firstName,
-  formatEmbroideryDate,
-} from "@/lib/embroidery/format"
-import { cn } from "@/lib/utils"
+  buildOpsPayload,
+  emptyOpsFormValues,
+  embroideryOpsFormSchema,
+  resetOpsFormValues,
+  type EmbroideryOpsFormValues,
+  type WorkAreaOption,
+} from "@/lib/embroidery/ops-form"
+import { notify } from "@/lib/notify"
+import { resolveProductCatId } from "@/lib/track-orders/product-cat-id"
 
-const selectClass = cn(
-  "border-input bg-transparent h-9 w-full rounded-lg border px-2.5 text-sm outline-none",
-  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-)
+function parseStoredWorkAreas(
+  workAreas?: string[] | string | null
+): WorkAreaOption[] {
+  const raw = Array.isArray(workAreas)
+    ? workAreas
+    : typeof workAreas === "string" && workAreas.trim()
+      ? [workAreas]
+      : []
+  const out: WorkAreaOption[] = []
+  for (const entry of raw) {
+    try {
+      const parsed =
+        typeof entry === "string" ? (JSON.parse(entry) as WorkAreaOption) : null
+      if (parsed?.id && parsed?.name) {
+        out.push({
+          id: String(parsed.id),
+          name: String(parsed.name),
+          group: String(parsed.group || parsed.name),
+        })
+      }
+    } catch {
+      // skip
+    }
+  }
+  return out
+}
 
 function OpsFormInner() {
   const router = useRouter()
@@ -41,9 +67,9 @@ function OpsFormInner() {
   const id = searchParams.get("id")?.trim() || ""
 
   const [fetchDetail, { data, loading, error }] = useLazyQuery<
-    GetEmbroideryByIdData,
+    GetEmbroideryOpsByIdData,
     GetEmbroideryByIdVars
-  >(GET_EMBROIDERY_BY_ID, { fetchPolicy: "network-only" })
+  >(GET_EMBROIDERY_OPS_BY_ID, { fetchPolicy: "network-only" })
 
   const [saveEmbroidery, { loading: saving }] = useMutation<
     SaveEmbroideryData,
@@ -52,20 +78,42 @@ function OpsFormInner() {
 
   const detail = data?.getEmbroideryById
 
-  const [embStatus, setEmbStatus] = useState("")
-  const [markingStatus, setMarkingStatus] = useState("")
-  const [sampleStatus, setSampleStatus] = useState("")
-  const [paperStatus, setPaperStatus] = useState("")
-  const [approvalStatus, setApprovalStatus] = useState("")
-  const [qcStatus, setQcStatus] = useState("")
-  const [workshopName, setWorkshopName] = useState("")
-  const [estHrs, setEstHrs] = useState("")
-  const [workHrs, setWorkHrs] = useState("")
-  const [price, setPrice] = useState("")
-  const [estimatedCost, setEstimatedCost] = useState("")
-  const [embRemark, setEmbRemark] = useState("")
-  const [note, setNote] = useState("")
-  const [paperNo, setPaperNo] = useState("")
+  const catId = useMemo(() => {
+    if (!detail) return null
+    return (
+      detail.catId?.trim() ||
+      resolveProductCatId(detail.storeOrderProductName, detail.catId) ||
+      null
+    )
+  }, [detail])
+
+  const { options: mappedAreas, loading: areasLoading } =
+    useEmbroideryAreaMapping(catId, Boolean(detail))
+
+  const storedAreas = useMemo(
+    () => parseStoredWorkAreas(detail?.workAreas),
+    [detail?.workAreas]
+  )
+
+  const areaOptions = useMemo(() => {
+    const byId = new Map<string, WorkAreaOption>()
+    for (const opt of mappedAreas) byId.set(opt.id, opt)
+    for (const opt of storedAreas) {
+      if (!byId.has(opt.id)) byId.set(opt.id, opt)
+    }
+    return Array.from(byId.values())
+  }, [mappedAreas, storedAreas])
+
+  const methods = useForm<EmbroideryOpsFormValues>({
+    resolver: zodResolver(embroideryOpsFormSchema),
+    defaultValues: emptyOpsFormValues(),
+  })
+
+  const {
+    handleSubmit,
+    reset,
+    formState: { isDirty },
+  } = methods
 
   useEffect(() => {
     if (!id) return
@@ -74,59 +122,26 @@ function OpsFormInner() {
 
   useEffect(() => {
     if (!detail) return
-    setEmbStatus(detail.embStatus ?? "")
-    setMarkingStatus(detail.markingStatus ?? "")
-    setSampleStatus(detail.sampleStatus ?? "")
-    setPaperStatus(detail.paperStatus ?? "")
-    setApprovalStatus(detail.approvalStatus ?? "")
-    setQcStatus(detail.qcStatus ?? "")
-    setWorkshopName(detail.workshopName ?? "")
-    setEstHrs(detail.estHrs != null ? String(detail.estHrs) : "")
-    setWorkHrs(detail.workHrs != null ? String(detail.workHrs) : "")
-    setPrice(detail.price != null ? String(detail.price) : "")
-    setEstimatedCost(
-      detail.estimatedCost != null ? String(detail.estimatedCost) : ""
-    )
-    setEmbRemark(detail.embRemark ?? "")
-    setNote(detail.note ?? "")
-    setPaperNo(detail.paperNo ?? "")
-  }, [detail])
+    reset(resetOpsFormValues(detail))
+  }, [detail, reset])
 
-  const title = useMemo(() => {
-    if (!detail) return "Update embroidery"
-    return `Update embroidery · ${detail.embroideryReqNo || detail._id}`
-  }, [detail])
-
-  async function onSave() {
+  const onSubmit = handleSubmit(async (values) => {
     if (!id) return
     try {
+      const body = buildOpsPayload(values, areaOptions)
       await saveEmbroidery({
-        variables: {
-          id,
-          body: {
-            embStatus: embStatus || null,
-            markingStatus: markingStatus || null,
-            sampleStatus: sampleStatus || null,
-            paperStatus: paperStatus || null,
-            approvalStatus: approvalStatus || null,
-            qcStatus: qcStatus || null,
-            workshopName: workshopName || null,
-            estHrs: estHrs ? Number(estHrs) : null,
-            workHrs: workHrs ? Number(workHrs) : null,
-            price: price ? Number(price) : null,
-            estimatedCost: estimatedCost ? Number(estimatedCost) : null,
-            embRemark: embRemark || null,
-            note: note || null,
-            paperNo: paperNo || null,
-          },
-        },
+        variables: { id, body },
       })
+      reset(values)
       notify.success("Embroidery updated")
-      void fetchDetail({ variables: { id } })
     } catch (err) {
-      notify.fromError(err)
+      notify.fromError(err, "Failed to update embroidery")
     }
-  }
+  })
+
+  const title = detail
+    ? `Update embroidery · ${detail.embroideryReqNo || detail._id}`
+    : "Update embroidery"
 
   if (!id) {
     return (
@@ -137,12 +152,12 @@ function OpsFormInner() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 pb-24">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
           <p className="text-muted-foreground text-sm">
-            Update workshop statuses, hours, and costs for this embroidery job.
+            Update work, workshops, statuses, hours, and costs for this job.
           </p>
         </div>
         <Button type="button" variant="outline" onClick={() => router.back()}>
@@ -151,8 +166,13 @@ function OpsFormInner() {
       </div>
 
       {loading && !detail ? (
-        <p className="text-muted-foreground text-sm">Loading…</p>
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-28 w-full rounded-lg" />
+          <Skeleton className="h-40 w-full rounded-lg" />
+          <Skeleton className="h-48 w-full rounded-lg" />
+        </div>
       ) : null}
+
       {error ? (
         <p className="text-destructive text-sm" role="alert">
           Failed to load embroidery details.
@@ -160,209 +180,38 @@ function OpsFormInner() {
       ) : null}
 
       {detail ? (
-        <>
-          <section className="bg-card rounded-lg border p-4">
-            <h2 className="mb-3 text-sm font-semibold">Summary</h2>
-            <dl className="grid gap-2 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-muted-foreground">Product</dt>
-                <dd>{detail.storeOrderProductNumber || "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Customer</dt>
-                <dd>{detail.customerName || "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Stylist</dt>
-                <dd>{firstName(detail.stylist)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Order date</dt>
-                <dd>{formatEmbroideryDate(detail.orderDate)}</dd>
-              </div>
-            </dl>
-          </section>
+        <FormProvider {...methods}>
+          <form className="flex flex-col gap-5" onSubmit={onSubmit}>
+            <OpsSummarySection detail={detail} />
+            <OpsWorkSection
+              areaOptions={areaOptions}
+              areasLoading={areasLoading}
+              disabled={saving}
+            />
+            <OpsWorkshopsSection enabled disabled={saving} />
+            <OpsStatusSection disabled={saving} />
+            <OpsHoursCostSection disabled={saving} />
 
-          <section className="bg-card grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ops-emb-status">Emb status</Label>
-              <select
-                id="ops-emb-status"
-                className={selectClass}
-                value={embStatus}
-                onChange={(e) => setEmbStatus(e.target.value)}
-              >
-                <option value="">—</option>
-                {EMB_STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+            <div className="bg-background/95 supports-backdrop-filter:bg-background/80 fixed inset-x-0 bottom-0 z-20 border-t backdrop-blur">
+              <div className="mx-auto flex max-w-4xl items-center justify-end gap-2 px-4 py-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={saving}
+                  onClick={() => router.push("/embroidery")}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={saving || !isDirty}>
+                  {saving ? (
+                    <Loader2Icon className="size-4 animate-spin" />
+                  ) : null}
+                  {saving ? "Saving…" : "Save"}
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ops-marking">Marking status</Label>
-              <select
-                id="ops-marking"
-                className={selectClass}
-                value={markingStatus}
-                onChange={(e) => setMarkingStatus(e.target.value)}
-              >
-                <option value="">—</option>
-                {MARKING_STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ops-sample">Sample status</Label>
-              <select
-                id="ops-sample"
-                className={selectClass}
-                value={sampleStatus}
-                onChange={(e) => setSampleStatus(e.target.value)}
-              >
-                <option value="">—</option>
-                {SAMPLE_STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ops-paper">Paper status</Label>
-              <select
-                id="ops-paper"
-                className={selectClass}
-                value={paperStatus}
-                onChange={(e) => setPaperStatus(e.target.value)}
-              >
-                <option value="">—</option>
-                {PAPER_STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ops-approval">Approval status</Label>
-              <select
-                id="ops-approval"
-                className={selectClass}
-                value={approvalStatus}
-                onChange={(e) => setApprovalStatus(e.target.value)}
-              >
-                <option value="">—</option>
-                {APPROVAL_STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ops-qc">QC status</Label>
-              <select
-                id="ops-qc"
-                className={selectClass}
-                value={qcStatus}
-                onChange={(e) => setQcStatus(e.target.value)}
-              >
-                <option value="">—</option>
-                {QC_STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label htmlFor="ops-workshop">Workshop name</Label>
-              <Input
-                id="ops-workshop"
-                value={workshopName}
-                onChange={(e) => setWorkshopName(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ops-est-hrs">Est. hours</Label>
-              <Input
-                id="ops-est-hrs"
-                type="number"
-                value={estHrs}
-                onChange={(e) => setEstHrs(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ops-work-hrs">Work hours</Label>
-              <Input
-                id="ops-work-hrs"
-                type="number"
-                value={workHrs}
-                onChange={(e) => setWorkHrs(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ops-price">Price</Label>
-              <Input
-                id="ops-price"
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ops-cost">Estimated cost</Label>
-              <Input
-                id="ops-cost"
-                type="number"
-                value={estimatedCost}
-                onChange={(e) => setEstimatedCost(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ops-paper-no">Paper no</Label>
-              <Input
-                id="ops-paper-no"
-                value={paperNo}
-                onChange={(e) => setPaperNo(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label htmlFor="ops-remark">Emb remark</Label>
-              <Input
-                id="ops-remark"
-                value={embRemark}
-                onChange={(e) => setEmbRemark(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label htmlFor="ops-note">Note</Label>
-              <Input
-                id="ops-note"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-              />
-            </div>
-          </section>
-
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/embroidery")}
-            >
-              Cancel
-            </Button>
-            <Button type="button" disabled={saving} onClick={() => void onSave()}>
-              {saving ? "Saving…" : "Save"}
-            </Button>
-          </div>
-        </>
+          </form>
+        </FormProvider>
       ) : null}
     </div>
   )
@@ -370,7 +219,11 @@ function OpsFormInner() {
 
 export function EmbroideryOpsFormClient() {
   return (
-    <Suspense fallback={<p className="text-muted-foreground text-sm">Loading…</p>}>
+    <Suspense
+      fallback={
+        <p className="text-muted-foreground text-sm">Loading form…</p>
+      }
+    >
       <OpsFormInner />
     </Suspense>
   )
