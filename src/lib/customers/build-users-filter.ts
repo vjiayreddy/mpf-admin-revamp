@@ -10,6 +10,7 @@ import {
   startDateFilter,
   type MpfDateFilter,
 } from "@/lib/customers/date-filter"
+import { labelForCallingCode } from "@/lib/customers/country-calling-codes"
 import type { UserFilterInput } from "@/lib/apollo/queries/users"
 
 function splitCsv(value: string | null): string[] | undefined {
@@ -97,8 +98,7 @@ export function buildUsersFilterFromSearchParams(
   )
   if (secondaryStudioIds) filter.secondaryStudioIds = secondaryStudioIds
 
-  // country_code in legacy stores country name → callingCode. Until country
-  // autocomplete lands, accept a numeric calling code in the same URL key.
+  // URL stores dialing digits (e.g. "91"); More Filters uses country dropdown.
   const countryCode = searchParams.get(CUSTOMER_FILTER_PARAMS.countryCode)
   if (countryCode && /^\d+$/.test(countryCode)) {
     filter.countryCode = countryCode
@@ -283,8 +283,8 @@ export function listActiveCustomerFilters(
   if (countryCode) {
     chips.push({
       id: "countryCode",
-      label: "Country code",
-      displayValue: countryCode,
+      label: "Country",
+      displayValue: labelForCallingCode(countryCode),
       clear: { [p.countryCode]: null },
     })
   }

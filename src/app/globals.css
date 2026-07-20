@@ -363,3 +363,20 @@
 .animate-network-progress {
   animation: network-progress 1.2s ease-in-out infinite alternate;
 }
+
+/* Voice / speech-to-text listening bars */
+@keyframes speech-wave {
+  0%,
+  100% {
+    height: 0.25rem;
+    opacity: 0.55;
+  }
+  50% {
+    height: 0.875rem;
+    opacity: 1;
+  }
+}
+.speech-wave-bar {
+  height: 0.35rem;
+  animation: speech-wave 0.9s ease-in-out infinite;
+}

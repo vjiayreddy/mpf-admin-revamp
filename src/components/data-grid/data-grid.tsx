@@ -9,6 +9,7 @@ import type {
   IsFullWidthRowParams,
   RowClassParams,
   RowClickedEvent,
+  RowDoubleClickedEvent,
   RowHeightParams,
 } from "ag-grid-community"
 import { themeQuartz } from "ag-grid-community"
@@ -41,6 +42,7 @@ export type DataGridProps<TData> = {
   loading?: boolean
   getRowId?: AgGridReactProps<TData>["getRowId"]
   onRowClicked?: (event: RowClickedEvent<TData>) => void
+  onRowDoubleClicked?: (event: RowDoubleClickedEvent<TData>) => void
   /** Filters the currently loaded rows only (not server search). */
   quickFilterText?: string
   className?: string
@@ -81,6 +83,7 @@ export function DataGrid<TData>({
   loading = false,
   getRowId,
   onRowClicked,
+  onRowDoubleClicked,
   quickFilterText,
   className,
   heightClassName = "h-[calc(100vh-14rem)]",
@@ -137,6 +140,7 @@ export function DataGrid<TData>({
         loading={loading}
         getRowId={getRowId as (params: GetRowIdParams<TData>) => string}
         onRowClicked={onRowClicked}
+        onRowDoubleClicked={onRowDoubleClicked}
         quickFilterText={quickFilterText}
         isFullWidthRow={isFullWidthRow}
         fullWidthCellRenderer={fullWidthCellRenderer}
