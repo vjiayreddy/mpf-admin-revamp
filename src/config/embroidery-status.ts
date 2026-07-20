@@ -77,6 +77,14 @@ export const WORK_TYPE_OPTIONS: EmbroideryStatusOption[] = [
   { value: "MACHINE", label: "Machine" },
   { value: "MACHINE_AND_HAND", label: "Machine And Hand" },
   { value: "MONOGRAM", label: "Monogram" },
+  { value: "HAND_PAINT", label: "Hand Paint" },
+  { value: "COMPUTERIZED", label: "Computerized" },
+]
+
+/** Legacy EmbTrackForm anyDelay Yes/No (stored as boolean). */
+export const ANY_DELAY_OPTIONS: EmbroideryStatusOption[] = [
+  { value: "true", label: "Yes" },
+  { value: "false", label: "No" },
 ]
 
 export const EMB_ORDER_STATUS_OPTIONS: EmbroideryStatusOption[] = [

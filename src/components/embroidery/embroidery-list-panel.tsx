@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useMemo, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ListFilterIcon } from "lucide-react"
 
 import { buildEmbroideryColumnDefs } from "@/components/embroidery/embroidery-columns"
@@ -16,16 +16,20 @@ import { useEmbroideryList } from "@/hooks/use-embroidery-list"
 import type { EmbroideryListRow } from "@/lib/apollo/queries/embroidery"
 
 export function EmbroideryListPanel() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const list = useEmbroideryList()
   const [pageQuickFilter, setPageQuickFilter] = useState("")
   const [designRow, setDesignRow] = useState<EmbroideryListRow | null>(null)
   const [detailsRow, setDetailsRow] = useState<EmbroideryListRow | null>(null)
 
-  const openOpsForm = useCallback((row: EmbroideryListRow) => {
-    if (!row._id) return
-    window.open(`/embroidery/form?id=${encodeURIComponent(row._id)}`, "_blank")
-  }, [])
+  const openOpsForm = useCallback(
+    (row: EmbroideryListRow) => {
+      if (!row._id) return
+      router.push(`/embroidery/form?id=${encodeURIComponent(row._id)}`)
+    },
+    [router]
+  )
 
   const columnDefs = useMemo(
     () =>
@@ -126,7 +130,7 @@ export function EmbroideryListPanel() {
           loading={list.loading}
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
-          getRowHeight={() => 56}
+          getRowHeight={() => 40}
           heightClassName={gridHeight}
           persistKey="embroidery"
           className="mpf-embroidery-grid rounded-none border-0"

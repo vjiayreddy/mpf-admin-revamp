@@ -54,9 +54,9 @@ export type EmbroideryListRow = {
   } | null
   workType?: string[] | string | null
   workshopName?: string | null
-  workshopId?: string | null
-  machineWorkshopId?: string | null
-  computerizedWorkshopId?: string | null
+  workshopId?: string | string[] | null
+  machineWorkshopId?: string | string[] | null
+  computerizedWorkshopId?: string | string[] | null
   embStatus?: string | null
   markingStatus?: string | null
   sampleStatus?: string | null
@@ -71,6 +71,14 @@ export type EmbroideryListRow = {
   price?: number | null
   estimatedCost?: number | null
   costOfEmbroidery?: number | null
+  paperNo?: string | null
+  paperHrs?: number | null
+  sampleHrs?: number | null
+  anyDelays?: string | boolean | null
+  approvalRemarks?: string | null
+  markingRemarks?: string | null
+  estimatedCostOrPrice?: number | null
+  catId?: string | null
 }
 
 export type EmbroideryOtherAttribute = {
@@ -153,7 +161,6 @@ export type GetEmbroideryByFilterData = {
 }
 
 export type EmbroideryDetail = EmbroideryListRow & {
-  catId?: string | null
   fabricName?: string | null
   fabricColor?: string | null
   fabricImageNote?: string | null
@@ -161,13 +168,6 @@ export type EmbroideryDetail = EmbroideryListRow & {
   styleDesignImage?: string | null
   embType?: string | null
   artworkType?: string | null
-  paperNo?: string | null
-  paperHrs?: number | null
-  sampleHrs?: number | null
-  anyDelays?: string | null
-  approvalRemarks?: string | null
-  markingRemarks?: string | null
-  estimatedCostOrPrice?: number | null
   designReferenceImageNote?: string | null
   length?: string | null
   bbs?: string | null
@@ -175,6 +175,13 @@ export type EmbroideryDetail = EmbroideryListRow & {
   bootas?: EmbroideryBoota[] | null
   monograms?: EmbroideryMonogram[] | null
   workMaterialSamples?: EmbroideryMaterialSample[] | null
+}
+
+/** Lean ops form payload — excludes design bootas/monograms/materials. */
+export type EmbroideryOpsDetail = EmbroideryListRow
+
+export type GetEmbroideryOpsByIdData = {
+  getEmbroideryById: EmbroideryOpsDetail
 }
 
 export type GetEmbroideryByIdData = {
@@ -192,6 +199,31 @@ export type SaveEmbroideryVars = {
 
 export type SaveEmbroideryData = {
   saveEmbroidery: { _id: string }
+}
+
+export type EmbroideryAreaOption = {
+  sortOrder?: number | null
+  name?: string | null
+  label?: string | null
+}
+
+export type EmbroideryAreaMapEntry = {
+  name?: string | null
+  label?: string | null
+  sortOrder?: number | null
+  options?: EmbroideryAreaOption[] | null
+}
+
+export type GetEmbroideryAreaMappingData = {
+  getEmbroideryAreaMapping: Array<{
+    _id: string
+    catId?: string | null
+    map?: EmbroideryAreaMapEntry[] | null
+  } | null> | null
+}
+
+export type GetEmbroideryAreaMappingVars = {
+  catId: string
 }
 
 const EMB_DATE_FIELDS = `
@@ -440,6 +472,102 @@ export const GET_EMBROIDERY_BY_ID = gql`
         referenceImageNote
         trialDate {
           ${EMB_DATE_FIELDS}
+        }
+      }
+    }
+  }
+`
+
+/** Ops form only — no bootas/monograms/materials/design image trees. */
+export const GET_EMBROIDERY_OPS_BY_ID = gql`
+  query GetEmbroideryOpsById($id: ID!) {
+    getEmbroideryById(_id: $id) {
+      _id
+      embroideryReqNo
+      storeOrderProductNumber
+      storeOrderProductName
+      storeOrderNo
+      storeOrderId
+      storeOrderProductId
+      customerId
+      customerName
+      userId
+      catId
+      stylistId
+      stylist {
+        name
+      }
+      fabricImage
+      referenceImage
+      workType
+      workAreas
+      workshopId
+      workshopName
+      machineWorkshopId
+      computerizedWorkshopId
+      orderStatus
+      orderDate {
+        ${EMB_DATE_FIELDS}
+      }
+      trialDate {
+        ${EMB_DATE_FIELDS}
+      }
+      embReadyDate {
+        ${EMB_DATE_FIELDS}
+      }
+      markingExpectedDate {
+        ${EMB_DATE_FIELDS}
+      }
+      embStatus
+      markingStatus
+      sampleStatus
+      paperStatus
+      approvalStatus
+      qcStatus
+      embRemark
+      note
+      paperNo
+      paperHrs
+      sampleHrs
+      estHrs
+      workHrs
+      totalActualHrs
+      price
+      estimatedCost
+      estimatedCostOrPrice
+      anyDelays
+      approvalRemarks
+      markingRemarks
+      storeOrder {
+        orderStatus
+        trialDate {
+          ${EMB_DATE_FIELDS}
+        }
+      }
+      orderItemAttributes {
+        fabricImage
+        referenceImage
+        trialDate {
+          ${EMB_DATE_FIELDS}
+        }
+      }
+    }
+  }
+`
+
+export const GET_EMBROIDERY_AREA_MAPPING = gql`
+  query GetEmbroideryAreaMapping($catId: ID!) {
+    getEmbroideryAreaMapping(catId: $catId) {
+      _id
+      catId
+      map {
+        name
+        label
+        sortOrder
+        options {
+          sortOrder
+          name
+          label
         }
       }
     }

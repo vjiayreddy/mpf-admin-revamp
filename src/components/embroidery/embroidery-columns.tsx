@@ -64,7 +64,7 @@ function ImageThumb({
     <>
       <button
         type="button"
-        className="border-border my-0.5 block size-9 shrink-0 overflow-hidden rounded-sm border"
+        className="border-border block size-8 shrink-0 overflow-hidden rounded-sm border"
         onClick={(e) => {
           e.stopPropagation()
           setOpen(true)

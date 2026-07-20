@@ -2,7 +2,7 @@
 
 import {
   EyeIcon,
-  ExternalLinkIcon,
+  FilePenIcon,
   MoreHorizontalIcon,
   PencilIcon,
 } from "lucide-react"
@@ -72,8 +72,8 @@ export function EmbroideryRowActions({
             onOpenOpsForm(row)
           }}
         >
-          <ExternalLinkIcon className="size-4" />
-          Ops form
+          <FilePenIcon className="size-4" />
+          Update form
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
