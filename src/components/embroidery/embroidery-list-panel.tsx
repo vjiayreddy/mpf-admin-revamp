@@ -126,7 +126,7 @@ export function EmbroideryListPanel() {
           loading={list.loading}
           getRowId={(params) => params.data._id}
           quickFilterText={pageQuickFilter}
-          getRowHeight={() => 56}
+          getRowHeight={() => 40}
           heightClassName={gridHeight}
           persistKey="embroidery"
           className="mpf-embroidery-grid rounded-none border-0"
