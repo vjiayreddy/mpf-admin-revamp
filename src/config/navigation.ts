@@ -111,8 +111,8 @@ export const navigation: NavItem[] = [
     title: "Embroidery",
     icon: Scissors,
     children: [
-      { title: "Running Emb List", href: "/embroidery" },
-      { title: "Completed Emb List", href: "/embroidery/completed" },
+      { title: "List", href: "/embroidery" },
+      { title: "Calendar", href: "/embroidery/calendar" },
     ],
   },
   {

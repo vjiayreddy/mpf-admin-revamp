@@ -50,6 +50,25 @@ export function useGridColumnPersistence<TData>({
         state: state as Parameters<GridApi["applyColumnState"]>[0]["state"],
         applyOrder: true,
       })
+      // Persisted order omits new cols (e.g. More) — re-assert lockPosition:left at front.
+      const next = api.getColumnState()
+      const lockedLeft: typeof next = []
+      const rest: typeof next = []
+      for (const col of next) {
+        const def = api.getColumnDef(col.colId)
+        const lock = def?.lockPosition
+        if (lock === "left" || lock === true) {
+          lockedLeft.push({ ...col, pinned: "left" as const })
+        } else {
+          rest.push(col)
+        }
+      }
+      if (lockedLeft.length > 0) {
+        api.applyColumnState({
+          state: [...lockedLeft, ...rest],
+          applyOrder: true,
+        })
+      }
     } finally {
       // Allow AG Grid events from apply to settle before saving again.
       window.setTimeout(() => {

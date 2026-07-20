@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { EmbroideryPageClient } from "@/app/(dashboard)/embroidery/embroidery-page-client"
 
 export default function EmbroideryPage() {
-  return <PlaceholderPage title="Running Embroidery" />
+  return <EmbroideryPageClient />
 }
