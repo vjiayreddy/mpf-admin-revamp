@@ -7,6 +7,7 @@ import {
   FilterFieldset,
   FilterSelect,
 } from "@/components/customers/filter-fields"
+import { CountryCallingCodeSelect } from "@/components/customers/country-calling-code-select"
 import { StudioMultiSelect } from "@/components/customers/studio-multi-select"
 import { Button } from "@/components/ui/button"
 import {
@@ -205,19 +206,11 @@ export function CustomersMoreFilters({
               allowEmpty
               emptyLabel="Any"
             />
-            <div className="flex flex-col gap-1.5">
-              <label className="text-muted-foreground text-xs">
-                Country calling code
-              </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="e.g. 91"
-                value={draft.countryCode}
-                onChange={(e) => setField("countryCode", e.target.value)}
-                className="border-input h-8 rounded-lg border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
-            </div>
+            <CountryCallingCodeSelect
+              label="Country"
+              value={draft.countryCode}
+              onChange={(v) => setField("countryCode", v)}
+            />
             <StudioMultiSelect
               label="Primary studio"
               studios={studios}
