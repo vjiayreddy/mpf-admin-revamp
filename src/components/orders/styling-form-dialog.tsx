@@ -401,13 +401,15 @@ export function StylingFormDialog({
                   No styling attributes configured for this product.
                 </p>
               ) : (
-                attributes.map((attr) => {
+                attributes.map((attr, index) => {
                   const master = attr.masterName?.trim()
                   if (!master) return null
                   const options = filterOptionsForProduct(itemName, attr)
+                  // Config can repeat the same masterName (e.g. indowestern side vs chest pockets).
+                  const rowKey = `${master}:${(attr.label || "").trim()}:${index}`
                   return (
                     <StyleOptionRadioGroup
-                      key={master}
+                      key={rowKey}
                       name={master}
                       label={attr.label || master}
                       options={options}

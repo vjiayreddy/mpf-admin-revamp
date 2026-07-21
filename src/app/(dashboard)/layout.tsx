@@ -1,4 +1,5 @@
 import { SessionGuard } from "@/components/auth/session-guard"
+import { MaintenanceProvider } from "@/components/maintenance/maintenance-provider"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SiteHeader } from "@/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -29,7 +30,9 @@ export default async function DashboardLayout({
           userEmail={session.user.email}
           userImage={session.user.image}
         />
-        <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
+        <MaintenanceProvider>
+          <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
+        </MaintenanceProvider>
       </SidebarInset>
     </SidebarProvider>
   )

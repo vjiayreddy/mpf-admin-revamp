@@ -26,3 +26,14 @@ export const gridActivePreset = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.gridKey] })]
 )
+
+/** Singleton portal maintenance / deployment announcement state. */
+export const maintenanceStatus = sqliteTable("maintenance_status", {
+  id: text("id").primaryKey(), // always "current"
+  status: text("status").notNull(), // "idle" | "upcoming" | "active"
+  message: text("message").notNull().default(""),
+  startsAt: integer("starts_at", { mode: "timestamp_ms" }),
+  endsAtEstimate: integer("ends_at_estimate", { mode: "timestamp_ms" }),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  updatedBy: text("updated_by"),
+})

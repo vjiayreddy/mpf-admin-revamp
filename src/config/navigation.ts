@@ -156,7 +156,10 @@ export const navigation: NavItem[] = [
   {
     title: "System",
     icon: Activity,
-    children: [{ title: "Monitoring", href: "/system/health" }],
+    children: [
+      { title: "Monitoring", href: "/system/health" },
+      { title: "Maintenance", href: "/system/maintenance" },
+    ],
   },
 ]
 
