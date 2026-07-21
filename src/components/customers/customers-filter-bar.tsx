@@ -185,7 +185,6 @@ export function CustomersFilterBar({
         {showCreateCustomer ? (
           <Button
             type="button"
-            variant="secondary"
             size="sm"
             className="h-8"
             onClick={() => setCreateOpen(true)}

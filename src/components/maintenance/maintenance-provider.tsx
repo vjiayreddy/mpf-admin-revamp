@@ -149,13 +149,13 @@ export function MaintenanceProvider({
         applyState(message.data as MaintenanceState)
       }
 
-      channel.subscribe("status", onMessage, (err) => {
-        if (err) {
-          console.warn(
-            "[maintenance] Ably subscribe failed; using poll only",
-            err.message ?? err
-          )
-        }
+      void channel.subscribe("status", onMessage).catch((err: unknown) => {
+        if (cancelled) return
+        const message = err instanceof Error ? err.message : err
+        console.warn(
+          "[maintenance] Ably subscribe failed; using poll only",
+          message
+        )
       })
     } catch (err) {
       console.warn("[maintenance] Ably init failed; using poll only", err)
