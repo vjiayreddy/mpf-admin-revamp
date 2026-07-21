@@ -55,7 +55,9 @@ function TrialPageInner() {
   const [viewOpen, setViewOpen] = useState(false)
 
   const openListTrial = useCallback((trial: OrderTrialRow) => {
-    setViewTarget({ kind: "trialId", trialId: trial._id })
+    // Pass full list row so View paints immediately and reopen works without a
+    // second network round-trip (trialId-only fetch had a stale-empty race).
+    setViewTarget({ kind: "trial", trial })
     setViewOpen(true)
   }, [])
 

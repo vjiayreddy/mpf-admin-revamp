@@ -5,6 +5,14 @@ import { Trash2Icon, UploadIcon } from "lucide-react"
 
 import { UppyFileUpload } from "@/components/upload/uppy-file-upload"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -41,176 +49,198 @@ export function TrialAssetsForm({
     if (!open) setDraft(null)
   }, [open, product])
 
-  if (!open || !draft) return null
-
-  const images = draft.trialImageLinks ?? []
+  const images = draft?.trialImageLinks ?? []
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-background max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border p-4 shadow-lg">
-        <h2 className="mb-1 text-lg font-semibold">
-          Trail assets — {draft.name || "Product"}
-        </h2>
-        <p className="text-muted-foreground mb-4 text-sm">
-          Item {draft.itemNumber ?? "—"}
-        </p>
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) onClose()
+        }}
+      >
+        <DialogContent
+          className="flex max-h-[90vh] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
+          showCloseButton
+        >
+          <DialogHeader>
+            <DialogTitle>
+              Trail assets — {draft?.name || "Product"}
+            </DialogTitle>
+            <DialogDescription>
+              Item {draft?.itemNumber ?? "—"}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Trail images</Label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="gap-1"
-                onClick={() => {
-                  setUploadKind("images")
-                  setUploadOpen(true)
-                }}
-              >
-                <UploadIcon className="size-3.5" />
-                Upload
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {images.length === 0 ? (
-                <span className="text-muted-foreground text-xs">No images</span>
-              ) : (
-                images.map((url) => (
-                  <div
-                    key={url}
-                    className="relative size-16 overflow-hidden rounded-md border"
+          {draft ? (
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Trail images</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => {
+                      setUploadKind("images")
+                      setUploadOpen(true)
+                    }}
                   >
+                    <UploadIcon className="size-3.5" />
+                    Upload
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {images.length === 0 ? (
+                    <span className="text-muted-foreground text-xs">
+                      No images
+                    </span>
+                  ) : (
+                    images.map((url) => (
+                      <div
+                        key={url}
+                        className="relative size-16 overflow-hidden rounded-md border"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt=""
+                          className="size-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          className="absolute top-0.5 right-0.5 rounded bg-black/60 p-0.5 text-white"
+                          onClick={() =>
+                            setDraft((d) =>
+                              d
+                                ? {
+                                    ...d,
+                                    trialImageLinks: (
+                                      d.trialImageLinks ?? []
+                                    ).filter((u) => u !== url),
+                                  }
+                                : d
+                            )
+                          }
+                          aria-label="Remove image"
+                        >
+                          <Trash2Icon className="size-3" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Fabric image</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => {
+                      setUploadKind("fabric")
+                      setUploadOpen(true)
+                    }}
+                  >
+                    <UploadIcon className="size-3.5" />
+                    Upload
+                  </Button>
+                </div>
+                {draft.fabricImageLink ? (
+                  <div className="relative inline-block size-16 overflow-hidden rounded-md border">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="" className="size-full object-cover" />
+                    <img
+                      src={draft.fabricImageLink}
+                      alt=""
+                      className="size-full object-cover"
+                    />
                     <button
                       type="button"
                       className="absolute top-0.5 right-0.5 rounded bg-black/60 p-0.5 text-white"
                       onClick={() =>
                         setDraft((d) =>
-                          d
-                            ? {
-                                ...d,
-                                trialImageLinks: (
-                                  d.trialImageLinks ?? []
-                                ).filter((u) => u !== url),
-                              }
-                            : d
+                          d ? { ...d, fabricImageLink: null } : d
                         )
                       }
-                      aria-label="Remove image"
+                      aria-label="Remove fabric"
                     >
                       <Trash2Icon className="size-3" />
                     </button>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Fabric image</Label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="gap-1"
-                onClick={() => {
-                  setUploadKind("fabric")
-                  setUploadOpen(true)
-                }}
-              >
-                <UploadIcon className="size-3.5" />
-                Upload
-              </Button>
-            </div>
-            {draft.fabricImageLink ? (
-              <div className="relative inline-block size-16 overflow-hidden rounded-md border">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={draft.fabricImageLink}
-                  alt=""
-                  className="size-full object-cover"
-                />
-                <button
-                  type="button"
-                  className="absolute top-0.5 right-0.5 rounded bg-black/60 p-0.5 text-white"
-                  onClick={() =>
-                    setDraft((d) => (d ? { ...d, fabricImageLink: null } : d))
-                  }
-                  aria-label="Remove fabric"
-                >
-                  <Trash2Icon className="size-3" />
-                </button>
+                ) : (
+                  <span className="text-muted-foreground text-xs">
+                    No fabric image
+                  </span>
+                )}
               </div>
-            ) : (
-              <span className="text-muted-foreground text-xs">
-                No fabric image
-              </span>
-            )}
-          </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="trial-video-url">Trail video URL</Label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="gap-1"
-                onClick={() => {
-                  setUploadKind("video")
-                  setUploadOpen(true)
-                }}
-              >
-                <UploadIcon className="size-3.5" />
-                Upload
-              </Button>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="trial-video-url">Trail video URL</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => {
+                      setUploadKind("video")
+                      setUploadOpen(true)
+                    }}
+                  >
+                    <UploadIcon className="size-3.5" />
+                    Upload
+                  </Button>
+                </div>
+                <Input
+                  id="trial-video-url"
+                  value={draft.trialVideoLink || ""}
+                  onChange={(e) =>
+                    setDraft((d) =>
+                      d ? { ...d, trialVideoLink: e.target.value || null } : d
+                    )
+                  }
+                  placeholder="https://…"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="trial-product-note">Trail note</Label>
+                <Textarea
+                  id="trial-product-note"
+                  rows={3}
+                  value={draft.trialNote || ""}
+                  onChange={(e) =>
+                    setDraft((d) =>
+                      d ? { ...d, trialNote: e.target.value } : d
+                    )
+                  }
+                />
+              </div>
             </div>
-            <Input
-              id="trial-video-url"
-              value={draft.trialVideoLink || ""}
-              onChange={(e) =>
-                setDraft((d) =>
-                  d ? { ...d, trialVideoLink: e.target.value || null } : d
-                )
-              }
-              placeholder="https://…"
-            />
-          </div>
+          ) : null}
 
-          <div className="space-y-2">
-            <Label htmlFor="trial-product-note">Trail note</Label>
-            <Textarea
-              id="trial-product-note"
-              rows={3}
-              value={draft.trialNote || ""}
-              onChange={(e) =>
-                setDraft((d) =>
-                  d ? { ...d, trialNote: e.target.value } : d
-                )
-              }
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              onSave(draft)
-              onClose()
-            }}
-          >
-            Save product
-          </Button>
-        </div>
-      </div>
+          <DialogFooter className="justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={!draft}
+              onClick={() => {
+                if (!draft) return
+                onSave(draft)
+                onClose()
+              }}
+            >
+              Save product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {uploadOpen ? (
         <UppyFileUpload
@@ -246,6 +276,6 @@ export function TrialAssetsForm({
           }}
         />
       ) : null}
-    </div>
+    </>
   )
 }

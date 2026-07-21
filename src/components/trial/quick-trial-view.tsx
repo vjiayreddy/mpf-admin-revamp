@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useLazyQuery, useMutation } from "@apollo/client/react"
+import { useLazyQuery } from "@apollo/client/react"
 import { useRouter } from "next/navigation"
 import { Loader2Icon } from "lucide-react"
 
@@ -23,16 +23,14 @@ import {
   TRIAL_RATING_OPTIONS,
   TRIAL_STATUS_OPTIONS,
 } from "@/config/trial-filters"
+import { useOrderTrialMutations } from "@/hooks/use-order-trial-mutations"
 import type { TrialStoreOrderRow } from "@/lib/apollo/queries/store-orders"
 import {
   GET_ORDER_TRIAL_BY_ID,
-  UPDATE_ORDER_TRIAL,
   type GetOrderTrialByIdData,
   type GetOrderTrialByIdVars,
   type NestedOrderTrial,
   type OrderTrialRow,
-  type UpdateOrderTrialData,
-  type UpdateOrderTrialVars,
 } from "@/lib/apollo/queries/trial"
 import { customerFullName, formatStoreOrderDate } from "@/lib/track-orders/format"
 import { buildQuickUpdatePayload } from "@/lib/trial/build-trial-payload"
@@ -120,18 +118,16 @@ export function QuickTrialView({
   const [fetchTrial, { loading: loadingTrial }] = useLazyQuery<
     GetOrderTrialByIdData,
     GetOrderTrialByIdVars
-  >(GET_ORDER_TRIAL_BY_ID, { fetchPolicy: "no-cache" })
+  >(GET_ORDER_TRIAL_BY_ID, { fetchPolicy: "network-only" })
   const fetchTrialRef = useRef(fetchTrial)
   fetchTrialRef.current = fetchTrial
 
-  const [updateTrial, { loading: updating }] = useMutation<
-    UpdateOrderTrialData,
-    UpdateOrderTrialVars
-  >(UPDATE_ORDER_TRIAL)
+  const { updateTrial, updating } = useOrderTrialMutations()
 
   const trialIdToFetch =
     open && target?.kind === "trialId" ? target.trialId : null
   const seededForTrialIdRef = useRef<string | null>(null)
+  const fetchSeqRef = useRef(0)
 
   useEffect(() => {
     if (!open) {
@@ -140,36 +136,38 @@ export function QuickTrialView({
       setFetchedTrial(null)
       setLoadError(null)
       seededForTrialIdRef.current = null
+      fetchSeqRef.current += 1
       return
     }
 
     if (!trialIdToFetch) return
 
-    let cancelled = false
+    const seq = ++fetchSeqRef.current
     setLoadError(null)
-    setFetchedTrial(null)
+    // Keep prior trial visible only if same id; otherwise clear for a clean load.
+    setFetchedTrial((prev) =>
+      prev?._id === trialIdToFetch ? prev : null
+    )
     seededForTrialIdRef.current = null
-    void fetchTrialRef.current({ variables: { orderTrialId: trialIdToFetch } })
+
+    void fetchTrialRef
+      .current({ variables: { orderTrialId: trialIdToFetch } })
       .then((result) => {
-        if (cancelled) return
+        if (seq !== fetchSeqRef.current) return
         const next = result.data?.getOrderTrialById ?? null
         if (!next) {
           setLoadError("Trail details not found")
+          setFetchedTrial(null)
           return
         }
         setFetchedTrial(next)
       })
       .catch((err) => {
-        if (!cancelled) {
-          setLoadError(
-            err instanceof Error ? err.message : "Failed to load trail"
-          )
-        }
+        if (seq !== fetchSeqRef.current) return
+        setLoadError(
+          err instanceof Error ? err.message : "Failed to load trail"
+        )
       })
-
-    return () => {
-      cancelled = true
-    }
   }, [open, trialIdToFetch])
 
   const trial = useMemo(

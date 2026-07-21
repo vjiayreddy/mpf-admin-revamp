@@ -3,6 +3,7 @@
 import type { ColDef, ICellRendererParams } from "ag-grid-community"
 
 import { OrdersRowActions } from "@/components/orders/orders-row-actions"
+import { Button } from "@/components/ui/button"
 import type { OrdersListRow } from "@/lib/apollo/queries/store-orders"
 import {
   customerFullName,
@@ -15,7 +16,9 @@ type BuildOrdersColumnDefsArgs = {
   onView: (row: OrdersListRow) => void
   onEdit: (row: OrdersListRow) => void
   onPrint: (row: OrdersListRow) => void
-  onTrial: (row: OrdersListRow) => void
+  onCreateTrial: (row: OrdersListRow) => void
+  onViewTrial: (row: OrdersListRow) => void
+  onEditTrial: (row: OrdersListRow) => void
   onInvoice: (row: OrdersListRow) => void
   onPayments: (row: OrdersListRow) => void
   onStyleHistory: (row: OrdersListRow) => void
@@ -43,7 +46,9 @@ export function buildOrdersColumnDefs({
   onView,
   onEdit,
   onPrint,
-  onTrial,
+  onCreateTrial,
+  onViewTrial,
+  onEditTrial,
   onInvoice,
   onPayments,
   onStyleHistory,
@@ -69,7 +74,9 @@ export function buildOrdersColumnDefs({
             onView={onView}
             onEdit={onEdit}
             onPrint={onPrint}
-            onTrial={onTrial}
+            onCreateTrial={onCreateTrial}
+            onViewTrial={onViewTrial}
+            onEditTrial={onEditTrial}
             onInvoice={onInvoice}
             onPayments={onPayments}
             onStyleHistory={onStyleHistory}
@@ -183,9 +190,45 @@ export function buildOrdersColumnDefs({
     },
     {
       colId: "trial",
-      headerName: "Trial",
-      minWidth: 100,
+      headerName: "Trail Form",
+      minWidth: 110,
+      sortable: false,
+      filter: false,
       valueGetter: (p) => (p.data?.orderTrial?._id ? "Entered" : "Pending"),
+      cellRenderer: (params: ICellRendererParams<OrdersListRow>) => {
+        const row = params.data
+        if (!row) return null
+        if (row.orderTrial?._id) {
+          return (
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto px-0 text-sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                onViewTrial(row)
+              }}
+            >
+              View
+            </Button>
+          )
+        }
+        return (
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            className="h-auto px-0 text-sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              onCreateTrial(row)
+            }}
+          >
+            Enter
+          </Button>
+        )
+      },
     },
   ]
 }

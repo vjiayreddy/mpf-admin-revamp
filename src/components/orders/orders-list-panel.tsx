@@ -74,19 +74,31 @@ export function OrdersListPanel() {
     [router]
   )
 
-  const onTrial = useCallback(
+  const onCreateTrial = useCallback(
     (row: OrdersListRow) => {
       const orderId = row._id?.trim()
       if (!orderId) return
-      if (row.orderTrial?._id) {
-        setTrialViewTarget({
-          kind: "trialId",
-          trialId: row.orderTrial._id,
-        })
-        setTrialViewOpen(true)
-        return
-      }
-      router.push(`/trial/form?orderId=${encodeURIComponent(orderId)}`)
+      router.push(
+        `/trial/form?orderId=${encodeURIComponent(orderId)}&returnTo=orders`
+      )
+    },
+    [router]
+  )
+
+  const onViewTrial = useCallback((row: OrdersListRow) => {
+    const trialId = row.orderTrial?._id?.trim()
+    if (!trialId) return
+    setTrialViewTarget({ kind: "trialId", trialId })
+    setTrialViewOpen(true)
+  }, [])
+
+  const onEditTrial = useCallback(
+    (row: OrdersListRow) => {
+      const trialId = row.orderTrial?._id?.trim()
+      if (!trialId) return
+      router.push(
+        `/trial/form?trailId=${encodeURIComponent(trialId)}&returnTo=orders`
+      )
     },
     [router]
   )
@@ -138,7 +150,9 @@ export function OrdersListPanel() {
         onView,
         onEdit,
         onPrint,
-        onTrial,
+        onCreateTrial,
+        onViewTrial,
+        onEditTrial,
         onInvoice,
         onPayments,
         onStyleHistory,
@@ -148,7 +162,9 @@ export function OrdersListPanel() {
       onView,
       onEdit,
       onPrint,
-      onTrial,
+      onCreateTrial,
+      onViewTrial,
+      onEditTrial,
       onInvoice,
       onPayments,
       onStyleHistory,
@@ -283,6 +299,14 @@ export function OrdersListPanel() {
           if (!next) setTrialViewTarget(null)
         }}
         target={trialViewTarget}
+        onEdit={(trialId) => {
+          router.push(
+            `/trial/form?trailId=${encodeURIComponent(trialId)}&returnTo=orders`
+          )
+        }}
+        onUpdated={() => {
+          list.refetch()
+        }}
       />
 
       <OrderListPaymentsSheet

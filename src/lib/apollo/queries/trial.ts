@@ -76,7 +76,7 @@ export type NestedOrderTrial = {
 }
 
 export type OrderTrialFilterParams = {
-  searchTerm?: string
+  /** Not in GraphQL OrderTrialFilterInput — resolve via user search → userId. */
   stylistId?: string | null
   userId?: string | null
   trialStatus?: string | null
@@ -84,6 +84,11 @@ export type OrderTrialFilterParams = {
   trialRating?: string | null
   measurementStatus?: string | null
   secondaryStylistId?: string | null
+  itemNumber?: string | null
+  trialDateStart?: string | null
+  trialDateEnd?: string | null
+  deliveryDateStart?: string | null
+  deliveryDateEnd?: string | null
 }
 
 export type GetOrderTrialsByFilterVars = {
