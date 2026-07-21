@@ -105,3 +105,5 @@ export type GetUsersByFilterVars = {
 }
 
 export const CUSTOMERS_PAGE_LIMIT = 100
+/** Max rows for OTP-gated Excel export (legacy parity). */
+export const CUSTOMERS_EXPORT_LIMIT = 10_000

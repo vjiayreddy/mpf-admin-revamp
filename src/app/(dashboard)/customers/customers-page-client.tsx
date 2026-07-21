@@ -11,6 +11,7 @@ import type {
 import { ListFilterIcon } from "lucide-react"
 
 import { CustomersFilterBar } from "@/components/customers/customers-filter-bar"
+import { CustomersRowActions } from "@/components/customers/customers-row-actions"
 import { QuickCustomerView } from "@/components/customers/quick-customer-view"
 import { DataGrid } from "@/components/data-grid/data-grid"
 import { DataGridPagination } from "@/components/data-grid/data-grid-pagination"
@@ -128,6 +129,26 @@ export function CustomersPageClient() {
   const columnDefs = useMemo(
     () =>
       [
+      {
+        colId: "actions",
+        headerName: "Actions",
+        width: 72,
+        maxWidth: 80,
+        pinned: "left",
+        lockPinned: true,
+        sortable: false,
+        filter: false,
+        resizable: false,
+        cellRenderer: (params: ICellRendererParams<CustomerListRow>) => {
+          if (!params.data) return null
+          return (
+            <CustomersRowActions
+              row={params.data}
+              onViewDetails={openQuickView}
+            />
+          )
+        },
+      },
       {
         field: "fullName",
         headerName: "Customer",

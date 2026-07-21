@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useLazyQuery, useMutation } from "@apollo/client/react"
 import { useForm } from "react-hook-form"
 import * as XLSX from "xlsx"
@@ -17,38 +17,63 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Textarea } from "@/components/ui/textarea"
-import { RECEIPT_FILTER_PARAMS } from "@/config/receipt-filters"
+import { CUSTOMER_FILTER_PARAMS } from "@/config/customer-filters"
 import { authClient } from "@/lib/auth-client"
 import { mpfUserIdFromAccessToken } from "@/lib/auth/mpf-user-id"
 import {
-  GET_STORE_ORDER_PAYMENTS,
   INITIATE_USER_EXPORT_OTP,
-  RECEIPTS_EXPORT_LIMIT,
   VERIFY_USER_EXPORT_OTP,
-  type GetStoreOrderPaymentsData,
-  type GetStoreOrderPaymentsVars,
   type InitiateUserExportOtpData,
   type InitiateUserExportOtpVars,
   type VerifyUserExportOtpData,
   type VerifyUserExportOtpVars,
 } from "@/lib/apollo/queries/receipts"
-import { buildReceiptsQueryVars } from "@/lib/receipts/build-receipts-filter"
-import { formatReceiptDate } from "@/lib/receipts/format"
+import {
+  CUSTOMERS_EXPORT_LIMIT,
+  GET_USERS_BY_FILTER,
+  type GetUsersByFilterData,
+  type GetUsersByFilterVars,
+} from "@/lib/apollo/queries/users"
+import { buildUsersFilterFromSearchParams } from "@/lib/customers/build-users-filter"
 import { notify } from "@/lib/notify"
 
 type ExportStep = "reason" | "otp" | "download"
 
-type ReceiptExportDialogProps = {
+type CustomerExportDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   searchParams: URLSearchParams
 }
 
-export function ReceiptExportDialog({
+function parseTeamsRoleFilter(teamsJson: string | null | undefined): unknown[] {
+  if (!teamsJson) return []
+  try {
+    const teams = JSON.parse(teamsJson) as unknown
+    if (Array.isArray(teams) && teams.length > 0) {
+      return [teams[0]]
+    }
+  } catch {
+    // ignore
+  }
+  return []
+}
+
+function formatRegisteredDate(value?: string | null) {
+  if (!value) return "N/A"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "N/A"
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })
+}
+
+export function CustomerExportDialog({
   open,
   onOpenChange,
   searchParams,
-}: ReceiptExportDialogProps) {
+}: CustomerExportDialogProps) {
   const { data: session } = authClient.useSession()
   const [step, setStep] = useState<ExportStep>("reason")
   const [error, setError] = useState<string | null>(null)
@@ -63,6 +88,11 @@ export function ReceiptExportDialog({
     defaultValues: { reason: "", otp: "" },
   })
 
+  const sessionRoleFilter = useMemo(
+    () => parseTeamsRoleFilter(session?.user?.teamsJson),
+    [session?.user?.teamsJson]
+  )
+
   const [initiateOtp, { loading: initiating }] = useMutation<
     InitiateUserExportOtpData,
     InitiateUserExportOtpVars
@@ -73,10 +103,10 @@ export function ReceiptExportDialog({
     VerifyUserExportOtpVars
   >(VERIFY_USER_EXPORT_OTP)
 
-  const [fetchPayments, { loading: exporting }] = useLazyQuery<
-    GetStoreOrderPaymentsData,
-    GetStoreOrderPaymentsVars
-  >(GET_STORE_ORDER_PAYMENTS, {
+  const [fetchUsers, { loading: exporting }] = useLazyQuery<
+    GetUsersByFilterData,
+    GetUsersByFilterVars
+  >(GET_USERS_BY_FILTER, {
     fetchPolicy: "network-only",
   })
 
@@ -88,56 +118,60 @@ export function ReceiptExportDialog({
     reset({ reason: "", otp: "" })
   }, [open, reset])
 
-  const hasDateRange =
-    Boolean(searchParams.get(RECEIPT_FILTER_PARAMS.paymentStartDate)) &&
-    Boolean(searchParams.get(RECEIPT_FILTER_PARAMS.paymentEndDate))
+  const hasRegisteredDateRange =
+    Boolean(searchParams.get(CUSTOMER_FILTER_PARAMS.startCreatedDate)) &&
+    Boolean(searchParams.get(CUSTOMER_FILTER_PARAMS.endCreatedDate))
 
   const runExport = async () => {
     setError(null)
     try {
-      const result = await fetchPayments({
-        variables: buildReceiptsQueryVars(
-          searchParams,
-          0,
-          RECEIPTS_EXPORT_LIMIT
-        ),
+      const filter = buildUsersFilterFromSearchParams(
+        searchParams,
+        sessionRoleFilter
+      )
+      const result = await fetchUsers({
+        variables: {
+          page: 1,
+          limit: CUSTOMERS_EXPORT_LIMIT,
+          filter,
+        },
       })
-      const payments = result.data?.getStoreOrderPayments?.payments ?? []
-      if (payments.length === 0) {
-        const msg = "No payments found for the selected filters."
+      const users = result.data?.getUsersByFilter ?? []
+      if (users.length === 0) {
+        const msg = "No customers found for the selected filters."
         setError(msg)
         notify.warning(msg)
         return
       }
 
-      const rows = payments.map((payload) => ({
-        paymentDate: formatReceiptDate(payload.paymentDate?.timestamp),
-        isVerified: payload.isVerified === true ? "Verified" : "Not Verified",
-        customerId: payload.customerId ?? "",
-        firstName: payload.customerFirstName ?? "",
-        lastName: payload.customerLastName ?? "",
-        stylist: payload.stylistName ?? "",
-        orderDate: formatReceiptDate(payload.orderDate?.timestamp),
-        netAmount: payload.netAmount ?? "",
-        payment: payload.paymentAmount ?? "",
-        modeOfPayment: payload.paymentMode ?? "",
+      const rows = users.map((payload) => ({
+        firstName: payload.firstName ?? "",
+        lastName: payload.lastName ?? "",
+        customerSrNo: payload.customerSrNo ?? "",
+        phone: payload.phone
+          ? `${payload.countryCode ?? ""}${payload.phone}`
+          : "",
+        email: payload.email ?? "",
+        RegisteredDate: formatRegisteredDate(payload.createdAt),
+        stylist: payload.stylist?.[0]?.name ?? "",
+        userStatus: payload.userStatus ?? "",
       }))
 
       const date = new Date()
-      const fileName = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}-exported-payment-data.xlsx`
+      const fileName = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}-exported-User-data.xlsx`
       const worksheet = XLSX.utils.json_to_sheet(rows)
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1")
       XLSX.writeFile(workbook, fileName)
-      notify.success("Receipts exported")
+      notify.success("Customers exported")
       onOpenChange(false)
     } catch (err) {
       const msg =
         err instanceof Error
           ? err.message
-          : "Failed to export payments. Try again."
+          : "Failed to export customers. Try again."
       setError(msg)
-      notify.fromError(err, "Failed to export payments. Try again.")
+      notify.fromError(err, "Failed to export customers. Try again.")
     }
   }
 
@@ -167,7 +201,7 @@ export function ReceiptExportDialog({
       }
       setDownloadHistoryId(id)
       setStep("otp")
-      notify.success("OTP sent")
+      notify.success("OTP sent to your registered mobile number")
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Failed to send OTP."
@@ -209,16 +243,16 @@ export function ReceiptExportDialog({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Export receipts</SheetTitle>
+          <SheetTitle>Export customers</SheetTitle>
           <SheetDescription>
-            OTP-gated Excel export for the current payment filters.
+            OTP-gated Excel export for the current customer filters.
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
-          {!hasDateRange ? (
+          {!hasRegisteredDateRange ? (
             <p className="text-destructive text-sm" role="alert">
-              Select payment start and end dates in More filters before
+              Select Registered start and end dates in More filters before
               exporting.
             </p>
           ) : null}
@@ -226,19 +260,19 @@ export function ReceiptExportDialog({
           {step === "reason" ? (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="export-reason">
+                <Label htmlFor="customer-export-reason">
                   Reason for exporting the data
                 </Label>
                 <Textarea
-                  id="export-reason"
+                  id="customer-export-reason"
                   rows={3}
-                  disabled={busy || !hasDateRange}
+                  disabled={busy || !hasRegisteredDateRange}
                   {...register("reason")}
                 />
               </div>
               <Button
                 type="button"
-                disabled={busy || !hasDateRange}
+                disabled={busy || !hasRegisteredDateRange}
                 onClick={onSendOtp}
               >
                 {initiating ? "Sending OTP…" : "Send OTP"}
@@ -252,9 +286,9 @@ export function ReceiptExportDialog({
                 Enter the OTP sent to your registered mobile number.
               </p>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="export-otp">OTP</Label>
+                <Label htmlFor="customer-export-otp">OTP</Label>
                 <Input
-                  id="export-otp"
+                  id="customer-export-otp"
                   disabled={busy}
                   {...register("otp")}
                 />
@@ -269,9 +303,13 @@ export function ReceiptExportDialog({
             <div className="flex flex-col gap-3">
               <p className="text-sm">
                 OTP verified. Download the Excel file for the current filters
-                (up to {RECEIPTS_EXPORT_LIMIT.toLocaleString()} rows).
+                (up to {CUSTOMERS_EXPORT_LIMIT.toLocaleString()} rows).
               </p>
-              <Button type="button" disabled={busy} onClick={() => void runExport()}>
+              <Button
+                type="button"
+                disabled={busy}
+                onClick={() => void runExport()}
+              >
                 {exporting ? "Preparing…" : "Download Excel"}
               </Button>
             </div>

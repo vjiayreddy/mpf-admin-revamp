@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useId, useState, type FormEvent } from "react"
-import { FilterIcon, PlusIcon, SearchIcon } from "lucide-react"
+import { DownloadIcon, FilterIcon, PlusIcon, SearchIcon } from "lucide-react"
 
 import { CreateCustomerDialog } from "@/components/customers/create-customer-dialog"
+import { CustomerExportDialog } from "@/components/customers/customer-export-dialog"
 import { CustomersActiveFilters } from "@/components/customers/customers-active-filters"
 import { CustomersMoreFilters } from "@/components/customers/customers-more-filters"
 import { Badge } from "@/components/ui/badge"
@@ -71,6 +72,7 @@ export function CustomersFilterBar({
 }: CustomersFilterBarProps) {
   const [draft, setDraft] = useState(searchInputValue)
   const [createOpen, setCreateOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const searchTypeId = useId()
   const clientId = useId()
   const sortId = useId()
@@ -169,6 +171,17 @@ export function CustomersFilterBar({
 
         <div className="flex-1" />
 
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8"
+          onClick={() => setExportOpen(true)}
+        >
+          <DownloadIcon className="size-4" />
+          Export
+        </Button>
+
         {showCreateCustomer ? (
           <Button
             type="button"
@@ -220,6 +233,12 @@ export function CustomersFilterBar({
           onCreated={onCustomerCreated}
         />
       ) : null}
+
+      <CustomerExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        searchParams={searchParams}
+      />
     </div>
   )
 }
