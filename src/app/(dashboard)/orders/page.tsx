@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page"
+import { OrdersPageClient } from "@/app/(dashboard)/orders/orders-page-client"
 
 export default function OrdersPage() {
-  return <PlaceholderPage title="Orders" />
+  return <OrdersPageClient />
 }

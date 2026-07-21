@@ -582,3 +582,35 @@ export const SAVE_EMBROIDERY = gql`
   }
 `
 
+export type EmbroiderySampleMaterialOption = {
+  sortOrder?: number | null
+  name?: string | null
+  label?: string | null
+}
+
+export type GetEmbroiderySampleMaterialMappingData = {
+  getEmbroiderySampleMaterialMapping: Array<{
+    _id: string
+    catId?: string | null
+    map?: EmbroiderySampleMaterialOption[] | null
+  } | null> | null
+}
+
+export type GetEmbroiderySampleMaterialMappingVars = {
+  catId: string
+}
+
+export const GET_EMBROIDERY_SAMPLE_MATERIAL_MAPPING = gql`
+  query GetEmbroiderySampleMaterialMapping($catId: ID!) {
+    getEmbroiderySampleMaterialMapping(catId: $catId) {
+      _id
+      catId
+      map {
+        sortOrder
+        name
+        label
+      }
+    }
+  }
+`
+

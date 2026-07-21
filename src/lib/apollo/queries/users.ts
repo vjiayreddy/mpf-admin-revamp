@@ -12,11 +12,13 @@ export const GET_USERS_BY_FILTER = gql`
       phone
       countryCode
       customerSrNo
-      customerId
       customerType
       userStatus
       studioId
       createdAt
+      images {
+        profile
+      }
       ccDueDate {
         timestamp
       }
@@ -48,17 +50,20 @@ export type CustomerListRow = {
   phone?: string | null
   countryCode?: string | null
   customerSrNo?: number | null
-  customerId?: number | null
   customerType?: string | null
   userStatus?: string | null
   studioId?: string | null
   createdAt?: string | null
+  images?: { profile?: string | null } | null
   ccDueDate?: { timestamp?: string | null } | null
   lastUpdatedAt?: { timestamp?: string | null } | null
   stylist?: Array<{ _id?: string; name?: string | null } | null> | null
   studios?: Array<{ _id?: string; name?: string | null } | null> | null
   secondaryStudios?: Array<{ _id?: string; name?: string | null } | null> | null
 }
+
+/** Alias used by order customer search. */
+export type UserListItem = CustomerListRow
 
 export type GetUsersByFilterData = {
   getUsersByFilter: CustomerListRow[]

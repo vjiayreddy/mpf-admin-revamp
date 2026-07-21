@@ -52,3 +52,48 @@ export function resolveCreateCustomerEmail(email: string, e164: string) {
   const digits = e164.replace(/\D/g, "")
   return `+${digits}@${CREATE_CUSTOMER_DEFAULTS.emailDomain}`
 }
+
+/**
+ * Map a customer-search query into register-form defaults.
+ * Phone-like input → mobile field; email-like → email field; names → ignored.
+ */
+export function guessCreateCustomerPrefill(
+  raw: string
+): Partial<CreateCustomerFormValues> {
+  const trimmed = raw.trim()
+  if (!trimmed) return {}
+
+  if (trimmed.includes("@")) {
+    return { email: trimmed }
+  }
+
+  const digits = trimmed.replace(/\D/g, "")
+  // Too short / mostly letters → treat as a name search, not a phone.
+  if (digits.length < 8) return {}
+
+  // Exact 10-digit Indian mobile — never re-interpret as another country.
+  if (/^[6-9]\d{9}$/.test(digits)) {
+    return { phone: `+91${digits}` }
+  }
+
+  // 91XXXXXXXXXX (with country code, no plus)
+  if (/^91[6-9]\d{9}$/.test(digits)) {
+    return { phone: `+${digits}` }
+  }
+
+  // 0XXXXXXXXXX local trunk prefix
+  if (/^0[6-9]\d{9}$/.test(digits)) {
+    return { phone: `+91${digits.slice(1)}` }
+  }
+
+  const parsed =
+    (trimmed.startsWith("+") ? parsePhoneNumber(trimmed) : undefined) ||
+    parsePhoneNumber(digits, "IN") ||
+    parsePhoneNumber(`+${digits}`)
+
+  if (parsed?.number) {
+    return { phone: parsed.number }
+  }
+
+  return {}
+}
