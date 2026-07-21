@@ -125,11 +125,22 @@ export function LeadsFilterBar({
         <select
           id={statusId}
           className={cn(compactSelectClass, "min-w-[9rem]")}
-          value={status || "all"}
+          value={
+            !status
+              ? "all"
+              : status.includes(",")
+                ? "multi"
+                : status
+          }
           disabled={loading}
           onChange={(e) => onStatusChange(e.target.value)}
         >
           <option value="all">Status: All</option>
+          {status.includes(",") ? (
+            <option value="multi" disabled>
+              Status: Multiple
+            </option>
+          ) : null}
           {LEAD_STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               Status: {opt.label}
@@ -152,7 +163,6 @@ export function LeadsFilterBar({
 
         <Button
           type="button"
-          variant="secondary"
           size="sm"
           className="h-8"
           onClick={handleAddLead}

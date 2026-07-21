@@ -23,6 +23,7 @@ export const LEAD_FILTER_PARAMS = {
 } as const
 
 export const MORE_LEAD_FILTER_KEYS = [
+  LEAD_FILTER_PARAMS.status,
   LEAD_FILTER_PARAMS.studioIds,
   LEAD_FILTER_PARAMS.sourceCatIds,
   LEAD_FILTER_PARAMS.brandPartnerSubCatIds,

@@ -151,12 +151,16 @@ export function listActiveLeadFilters(
   options?: {
     studioNameById?: Map<string, string>
     stylistNameById?: Map<string, string>
+    sourceNameById?: Map<string, string>
+    brandPartnerNameById?: Map<string, string>
   }
 ): ActiveLeadFilter[] {
   const p = LEAD_FILTER_PARAMS
   const chips: ActiveLeadFilter[] = []
   const studioNameById = options?.studioNameById
   const stylistNameById = options?.stylistNameById
+  const sourceNameById = options?.sourceNameById
+  const brandPartnerNameById = options?.brandPartnerNameById
 
   const searchTerm = searchParams.get(p.searchTerm)
   if (searchTerm) {
@@ -201,6 +205,32 @@ export function listActiveLeadFilters(
         .map((id) => studioNameById?.get(id.trim()) ?? id.trim())
         .join(", "),
       clear: { [p.studioIds]: null },
+    })
+  }
+
+  const sources = searchParams.get(p.sourceCatIds)
+  if (sources) {
+    chips.push({
+      id: "sources",
+      label: "Source",
+      displayValue: sources
+        .split(",")
+        .map((id) => sourceNameById?.get(id.trim()) ?? id.trim())
+        .join(", "),
+      clear: { [p.sourceCatIds]: null },
+    })
+  }
+
+  const brandPartners = searchParams.get(p.brandPartnerSubCatIds)
+  if (brandPartners) {
+    chips.push({
+      id: "brandPartners",
+      label: "Cross selling",
+      displayValue: brandPartners
+        .split(",")
+        .map((id) => brandPartnerNameById?.get(id.trim()) ?? id.trim())
+        .join(", "),
+      clear: { [p.brandPartnerSubCatIds]: null },
     })
   }
 
@@ -287,7 +317,6 @@ export function getClearAllLeadFilterUpdates(): Record<string, string | null> {
   const updates: Record<string, string | null> = {
     [LEAD_FILTER_PARAMS.page]: "0",
     [LEAD_FILTER_PARAMS.searchTerm]: null,
-    [LEAD_FILTER_PARAMS.status]: null,
     [LEAD_FILTER_PARAMS.creditToSalesTeamIds]: null,
     [LEAD_FILTER_PARAMS.userId]: null,
   }

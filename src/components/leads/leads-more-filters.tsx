@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useQuery } from "@apollo/client/react"
 
 import {
   FilterDateField,
@@ -8,6 +9,7 @@ import {
   FilterSelect,
 } from "@/components/customers/filter-fields"
 import { StudioMultiSelect } from "@/components/customers/studio-multi-select"
+import { FilterIdMultiSelect } from "@/components/leads/filter-id-multi-select"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -20,15 +22,29 @@ import {
 import {
   LEAD_FILTER_PARAMS,
   LEAD_RATING_OPTIONS,
+  LEAD_STATUS_OPTIONS,
 } from "@/config/lead-filters"
 import { useAllStudios } from "@/hooks/use-all-studios"
 import {
   dateInputToIso,
   isoToDateInput,
 } from "@/lib/customers/date-filter"
+import {
+  brandPartnerSubCategoryLabel,
+  GET_BRAND_PARTNER_SUB_CATEGORIES,
+  type GetBrandPartnerSubCategoriesByFilterData,
+  type GetBrandPartnerSubCategoriesByFilterVars,
+} from "@/lib/apollo/queries/brand-partners"
+import {
+  GET_ALL_SOURCE_CATEGORIES,
+  type GetAllSourceCategoriesData,
+} from "@/lib/apollo/queries/sources"
 
 type DraftState = {
+  statusIds: string[]
   studioIds: string[]
+  sourceCatIds: string[]
+  brandPartnerSubCatIds: string[]
   rating: string
   startLeadDate: string
   endLeadDate: string
@@ -53,7 +69,12 @@ function splitCsvIds(value: string | null): string[] {
 function draftFromParams(searchParams: URLSearchParams): DraftState {
   const p = LEAD_FILTER_PARAMS
   return {
+    statusIds: splitCsvIds(searchParams.get(p.status)),
     studioIds: splitCsvIds(searchParams.get(p.studioIds)),
+    sourceCatIds: splitCsvIds(searchParams.get(p.sourceCatIds)),
+    brandPartnerSubCatIds: splitCsvIds(
+      searchParams.get(p.brandPartnerSubCatIds)
+    ),
     rating: searchParams.get(p.rating) ?? "",
     startLeadDate: isoToDateInput(searchParams.get(p.startLeadDate)),
     endLeadDate: isoToDateInput(searchParams.get(p.endLeadDate)),
@@ -96,6 +117,53 @@ export function LeadsMoreFilters({
     draftFromParams(searchParams)
   )
 
+  const { data: sourcesData, loading: sourcesLoading } =
+    useQuery<GetAllSourceCategoriesData>(GET_ALL_SOURCE_CATEGORIES, {
+      skip: !open,
+      fetchPolicy: "cache-first",
+    })
+
+  const { data: brandPartnerData, loading: brandPartnerLoading } = useQuery<
+    GetBrandPartnerSubCategoriesByFilterData,
+    GetBrandPartnerSubCategoriesByFilterVars
+  >(GET_BRAND_PARTNER_SUB_CATEGORIES, {
+    skip: !open,
+    variables: { filter: {} },
+    fetchPolicy: "cache-first",
+  })
+
+  const sourceOptions = useMemo(() => {
+    const list = sourcesData?.getAllSourceCategories ?? []
+    return list
+      .filter((s) => s._id && s.isVisible !== false)
+      .map((s) => ({
+        id: s._id,
+        label: s.name?.trim() || s._id,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [sourcesData?.getAllSourceCategories])
+
+  const brandPartnerOptions = useMemo(() => {
+    const list =
+      brandPartnerData?.getBrandPartnerSubCategoriesByFilter ?? []
+    return list
+      .filter((s) => s.subCategoryId)
+      .map((s) => ({
+        id: s.subCategoryId,
+        label: brandPartnerSubCategoryLabel(s),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [brandPartnerData?.getBrandPartnerSubCategoriesByFilter])
+
+  const statusOptions = useMemo(
+    () =>
+      LEAD_STATUS_OPTIONS.map((opt) => ({
+        id: opt.value,
+        label: opt.label,
+      })),
+    []
+  )
+
   useEffect(() => {
     if (open) {
       setDraft(draftFromParams(searchParams))
@@ -110,8 +178,16 @@ export function LeadsMoreFilters({
   const handleApply = () => {
     const p = LEAD_FILTER_PARAMS
     onApply({
+      [p.status]:
+        draft.statusIds.length > 0 ? draft.statusIds.join(",") : null,
       [p.studioIds]:
         draft.studioIds.length > 0 ? draft.studioIds.join(",") : null,
+      [p.sourceCatIds]:
+        draft.sourceCatIds.length > 0 ? draft.sourceCatIds.join(",") : null,
+      [p.brandPartnerSubCatIds]:
+        draft.brandPartnerSubCatIds.length > 0
+          ? draft.brandPartnerSubCatIds.join(",")
+          : null,
       [p.rating]: draft.rating || null,
       [p.startLeadDate]: dateInputToIso(draft.startLeadDate),
       [p.endLeadDate]: dateInputToIso(draft.endLeadDate),
@@ -139,11 +215,43 @@ export function LeadsMoreFilters({
         <SheetHeader>
           <SheetTitle>More filters</SheetTitle>
           <SheetDescription>
-            Filter by studio, rating, and lead date ranges.
+            Filter by status, source, cross-selling, studio, rating, and date
+            ranges.
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
+          <FilterIdMultiSelect
+            label="Lead status"
+            options={statusOptions}
+            selectedIds={draft.statusIds}
+            onChange={(statusIds) => setField("statusIds", statusIds)}
+            searchPlaceholder="Search statuses…"
+            emptyLabel="No statuses"
+          />
+
+          <FilterIdMultiSelect
+            label="Source"
+            options={sourceOptions}
+            selectedIds={draft.sourceCatIds}
+            onChange={(sourceCatIds) => setField("sourceCatIds", sourceCatIds)}
+            loading={sourcesLoading}
+            searchPlaceholder="Search sources…"
+            emptyLabel="No sources match"
+          />
+
+          <FilterIdMultiSelect
+            label="Cross selling categories"
+            options={brandPartnerOptions}
+            selectedIds={draft.brandPartnerSubCatIds}
+            onChange={(brandPartnerSubCatIds) =>
+              setField("brandPartnerSubCatIds", brandPartnerSubCatIds)
+            }
+            loading={brandPartnerLoading}
+            searchPlaceholder="Search categories…"
+            emptyLabel="No categories match"
+          />
+
           <StudioMultiSelect
             label="Studios"
             studios={studios}

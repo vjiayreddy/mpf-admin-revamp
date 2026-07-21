@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo } from "react"
-import { useLazyQuery } from "@apollo/client/react"
+import { useLazyQuery, useQuery } from "@apollo/client/react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import {
@@ -20,12 +20,22 @@ import {
   listActiveLeadFilters,
 } from "@/lib/leads/build-leads-filter"
 import {
+  brandPartnerSubCategoryLabel,
+  GET_BRAND_PARTNER_SUB_CATEGORIES,
+  type GetBrandPartnerSubCategoriesByFilterData,
+  type GetBrandPartnerSubCategoriesByFilterVars,
+} from "@/lib/apollo/queries/brand-partners"
+import {
   GET_ALL_LEADS,
   LEADS_PAGE_LIMIT,
   type GetAllLeadsData,
   type GetAllLeadsVars,
   type LeadListRow,
 } from "@/lib/apollo/queries/leads"
+import {
+  GET_ALL_SOURCE_CATEGORIES,
+  type GetAllSourceCategoriesData,
+} from "@/lib/apollo/queries/sources"
 
 export function useLeadsList() {
   const router = useRouter()
@@ -51,6 +61,19 @@ export function useLeadsList() {
   const { studios, studioNameById } = useAllStudios()
   const { stylists } = useAllStylists()
 
+  const { data: sourcesData } = useQuery<GetAllSourceCategoriesData>(
+    GET_ALL_SOURCE_CATEGORIES,
+    { fetchPolicy: "cache-first" }
+  )
+
+  const { data: brandPartnerData } = useQuery<
+    GetBrandPartnerSubCategoriesByFilterData,
+    GetBrandPartnerSubCategoriesByFilterVars
+  >(GET_BRAND_PARTNER_SUB_CATEGORIES, {
+    variables: { filter: {} },
+    fetchPolicy: "cache-first",
+  })
+
   const stylistNameById = useMemo(() => {
     const map = new Map<string, string>()
     for (const s of stylists) {
@@ -58,6 +81,25 @@ export function useLeadsList() {
     }
     return map
   }, [stylists])
+
+  const sourceNameById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const s of sourcesData?.getAllSourceCategories ?? []) {
+      if (s._id) map.set(s._id, s.name?.trim() || s._id)
+    }
+    return map
+  }, [sourcesData?.getAllSourceCategories])
+
+  const brandPartnerNameById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const s of brandPartnerData?.getBrandPartnerSubCategoriesByFilter ??
+      []) {
+      if (s.subCategoryId) {
+        map.set(s.subCategoryId, brandPartnerSubCategoryLabel(s))
+      }
+    }
+    return map
+  }, [brandPartnerData?.getBrandPartnerSubCategoriesByFilter])
 
   const gqlVars = useMemo(
     () =>
@@ -74,8 +116,16 @@ export function useLeadsList() {
       listActiveLeadFilters(new URLSearchParams(paramsKey), {
         studioNameById,
         stylistNameById,
+        sourceNameById,
+        brandPartnerNameById,
       }),
-    [paramsKey, studioNameById, stylistNameById]
+    [
+      paramsKey,
+      studioNameById,
+      stylistNameById,
+      sourceNameById,
+      brandPartnerNameById,
+    ]
   )
 
   const advancedFilterCount = useMemo(
