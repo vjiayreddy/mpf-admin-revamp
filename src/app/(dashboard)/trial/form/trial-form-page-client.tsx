@@ -1,11 +1,20 @@
 "use client"
 
-import { Suspense, useEffect, useMemo, useState } from "react"
-import { useLazyQuery, useMutation } from "@apollo/client/react"
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import { useLazyQuery } from "@apollo/client/react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeftIcon, Loader2Icon, PencilIcon } from "lucide-react"
+import {
+  ArrowLeftIcon,
+  EyeIcon,
+  Loader2Icon,
+  PencilIcon,
+} from "lucide-react"
 
+import {
+  MeasurementView,
+  type MeasurementViewTarget,
+} from "@/components/measurements/measurement-view"
 import { TrialAssetsForm } from "@/components/trial/trial-assets-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +26,7 @@ import {
   TRIAL_RATING_OPTIONS,
   TRIAL_STATUS_OPTIONS,
 } from "@/config/trial-filters"
+import { useOrderTrialMutations } from "@/hooks/use-order-trial-mutations"
 import { authClient } from "@/lib/auth-client"
 import { isoToDateInput } from "@/lib/appointments/date-payload"
 import {
@@ -26,17 +36,11 @@ import {
   type StoreOrderDetail,
 } from "@/lib/apollo/queries/store-orders"
 import {
-  CREATE_ORDER_TRIAL,
   GET_ORDER_TRIAL_BY_ID,
-  UPDATE_ORDER_TRIAL,
-  type CreateOrderTrialData,
-  type CreateOrderTrialVars,
   type GetOrderTrialByIdData,
   type GetOrderTrialByIdVars,
   type OrderTrialProductInput,
   type OrderTrialRow,
-  type UpdateOrderTrialData,
-  type UpdateOrderTrialVars,
 } from "@/lib/apollo/queries/trial"
 import { customerFullName, formatStoreOrderDate } from "@/lib/track-orders/format"
 import {
@@ -85,12 +89,18 @@ function emptyForm(): TrialFormValues {
   }
 }
 
+function returnPath(returnTo: string | null) {
+  return returnTo === "orders" ? "/orders" : "/trial"
+}
+
 function TrialFormInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session } = authClient.useSession()
   const orderIdParam = searchParams.get("orderId")
   const trailIdParam = searchParams.get("trailId")
+  const returnToParam = searchParams.get("returnTo")
+  const backHref = returnPath(returnToParam)
 
   const [order, setOrder] = useState<StoreOrderDetail | null>(null)
   const [trial, setTrial] = useState<OrderTrialRow | null>(null)
@@ -99,6 +109,9 @@ function TrialFormInner() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [assetIndex, setAssetIndex] = useState<number | null>(null)
+  const [measurementOpen, setMeasurementOpen] = useState(false)
+  const [measurementTarget, setMeasurementTarget] =
+    useState<MeasurementViewTarget | null>(null)
 
   const [fetchOrder, { loading: loadingOrder }] = useLazyQuery<
     GetStoreOrderByIdData,
@@ -110,15 +123,8 @@ function TrialFormInner() {
     GetOrderTrialByIdVars
   >(GET_ORDER_TRIAL_BY_ID, { fetchPolicy: "network-only" })
 
-  const [createTrial, { loading: creating }] = useMutation<
-    CreateOrderTrialData,
-    CreateOrderTrialVars
-  >(CREATE_ORDER_TRIAL)
-
-  const [updateTrial, { loading: updating }] = useMutation<
-    UpdateOrderTrialData,
-    UpdateOrderTrialVars
-  >(UPDATE_ORDER_TRIAL)
+  const { createTrial, updateTrial, creating, updating } =
+    useOrderTrialMutations()
 
   useEffect(() => {
     let cancelled = false
@@ -218,6 +224,11 @@ function TrialFormInner() {
         ),
         orderNo: trial.storeProductOrder?.orderNo ?? "—",
         orderDate: formatStoreOrderDate(trial.storeProductOrder?.orderDate),
+        customerId: trial.storeProductOrder?.customerId ?? null,
+        stylistName:
+          trial.stylist?.name ||
+          trial.storeProductOrder?.stylist?.[0]?.name ||
+          null,
       }
     }
     if (order) {
@@ -229,10 +240,50 @@ function TrialFormInner() {
         ),
         orderNo: order.orderNo ?? "—",
         orderDate: formatStoreOrderDate(order.orderDate),
+        customerId: order.customerId ?? null,
+        stylistName: order.stylist?.[0]?.name ?? null,
       }
     }
     return null
   }, [trial, order])
+
+  const resolvedUserId = useMemo(
+    () =>
+      order?.userId ||
+      trial?.storeProductOrder?.userId ||
+      trial?.userId ||
+      null,
+    [order, trial]
+  )
+
+  const productRows = useMemo(() => products, [products])
+
+  const navigateBack = useCallback(() => {
+    router.push(backHref)
+  }, [router, backHref])
+
+  const openMeasurements = useCallback(
+    (item: OrderTrialProductInput) => {
+      const userId = resolvedUserId?.trim()
+      const catId = item.catId?.trim()
+      if (!userId || !catId) {
+        notify.error("Measurements unavailable for this product")
+        return
+      }
+      setMeasurementTarget({
+        userId,
+        catId,
+        orderId: order?._id || trial?.storeProductOrder?._id || undefined,
+        orderNo: header?.orderNo,
+        customerName: header?.clientName,
+        customerId: header?.customerId,
+        itemName: item.name,
+        stylistName: header?.stylistName,
+      })
+      setMeasurementOpen(true)
+    },
+    [resolvedUserId, order, trial, header]
+  )
 
   const saving = creating || updating
   const loading = loadingOrder || loadingTrial
@@ -241,13 +292,15 @@ function TrialFormInner() {
     event.preventDefault()
     setSubmitError(null)
 
+    if (!form.trialStatus.trim()) {
+      const msg = "Trail status is required"
+      setSubmitError(msg)
+      notify.error(msg)
+      return
+    }
+
     const resolvedOrderId =
       order?._id || trial?.storeProductOrder?._id || trial?.orderId || ""
-    const resolvedUserId =
-      order?.userId ||
-      trial?.storeProductOrder?.userId ||
-      trial?.userId ||
-      null
     const resolvedStylistId =
       order?.stylist?.[0]?._id ||
       trial?.storeProductOrder?.stylist?.[0]?._id ||
@@ -271,7 +324,7 @@ function TrialFormInner() {
 
     try {
       const isUpdate = Boolean(trial?._id && trailIdParam)
-      if (isUpdate) {
+      if (isUpdate && trailIdParam) {
         await updateTrial({
           variables: {
             orderTrialId: trailIdParam,
@@ -284,7 +337,7 @@ function TrialFormInner() {
         })
       }
       notify.success(isUpdate ? "Trial updated" : "Trial saved")
-      router.push("/trial")
+      navigateBack()
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Failed to save trail"
@@ -293,17 +346,20 @@ function TrialFormInner() {
     }
   }
 
+  const backLabel =
+    returnToParam === "orders" ? "Back to orders" : "Back to trial"
+
   return (
     <div className="flex w-full flex-col gap-4">
       <div className="bg-background/95 sticky top-14 z-10 -mx-4 border-b px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-col gap-1">
             <Link
-              href="/trial"
+              href={backHref}
               className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5 text-sm"
             >
               <ArrowLeftIcon className="size-4" />
-              Back to trial
+              {backLabel}
             </Link>
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
@@ -330,7 +386,7 @@ function TrialFormInner() {
               type="button"
               variant="outline"
               disabled={saving}
-              onClick={() => router.push("/trial")}
+              onClick={navigateBack}
             >
               Cancel
             </Button>
@@ -378,9 +434,12 @@ function TrialFormInner() {
             />
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="tf-status">Trail status</Label>
+                <Label htmlFor="tf-status">
+                  Trail status <span className="text-destructive">*</span>
+                </Label>
                 <select
                   id="tf-status"
+                  required
                   className={selectClass}
                   value={form.trialStatus}
                   onChange={(e) =>
@@ -504,7 +563,7 @@ function TrialFormInner() {
               description="Review items and edit fabric, trail images, video, and notes."
             />
             <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full min-w-[720px] text-left text-sm">
+              <table className="w-full min-w-[800px] text-left text-sm">
                 <thead className="bg-muted/50">
                   <tr className="border-b">
                     <th className="px-3 py-2.5 font-medium">Product</th>
@@ -512,18 +571,18 @@ function TrialFormInner() {
                     <th className="px-3 py-2.5 font-medium">Fabric</th>
                     <th className="px-3 py-2.5 font-medium">Trail images</th>
                     <th className="px-3 py-2.5 font-medium">Note</th>
-                    <th className="px-3 py-2.5 font-medium">Assets</th>
+                    <th className="px-3 py-2.5 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((item, index) => {
+                  {productRows.map((item, index) => {
                     const fabric = item.fabricImageLink?.trim()
                     const trialImages = (item.trialImageLinks ?? []).filter(
                       Boolean
                     )
                     return (
                       <tr
-                        key={`${item.itemNumber}-${index}`}
+                        key={`${item.itemNumber ?? "item"}-${item.catId ?? index}-${index}`}
                         className="border-b last:border-0"
                       >
                         <td className="px-3 py-2.5 font-medium">
@@ -580,23 +639,35 @@ function TrialFormInner() {
                           </span>
                         </td>
                         <td className="px-3 py-2.5">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-7 gap-1"
-                            onClick={() => setAssetIndex(index)}
-                          >
-                            <PencilIcon className="size-3.5" />
-                            Edit
-                          </Button>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 gap-1"
+                              onClick={() => setAssetIndex(index)}
+                            >
+                              <PencilIcon className="size-3.5" />
+                              Edit
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 gap-1"
+                              onClick={() => openMeasurements(item)}
+                            >
+                              <EyeIcon className="size-3.5" />
+                              Measurements
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     )
                   })}
                 </tbody>
               </table>
-              {products.length === 0 ? (
+              {productRows.length === 0 ? (
                 <p className="text-muted-foreground p-4 text-sm">
                   No products on this order.
                 </p>
@@ -615,7 +686,7 @@ function TrialFormInner() {
               type="button"
               variant="outline"
               disabled={saving}
-              onClick={() => router.push("/trial")}
+              onClick={navigateBack}
             >
               Cancel
             </Button>
@@ -636,6 +707,15 @@ function TrialFormInner() {
             prev.map((p, i) => (i === assetIndex ? next : p))
           )
         }}
+      />
+
+      <MeasurementView
+        open={measurementOpen}
+        onOpenChange={(next) => {
+          setMeasurementOpen(next)
+          if (!next) setMeasurementTarget(null)
+        }}
+        target={measurementTarget}
       />
     </div>
   )

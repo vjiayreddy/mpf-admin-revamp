@@ -29,12 +29,15 @@ function optionLabel(
 export function buildTrialListQueryVars(
   searchParams: URLSearchParams,
   page: number,
-  defaultPersonalStylistId?: string | null
+  defaultPersonalStylistId?: string | null,
+  resolvedUserId?: string | null
 ): GetOrderTrialsByFilterVars {
   const params: OrderTrialFilterParams = {}
 
-  const searchTerm = searchParams.get(TRIAL_PARAMS.searchTerm)?.trim()
-  if (searchTerm) params.searchTerm = searchTerm
+  // OrderTrialFilterInput has no searchTerm — map name/phone search to userId.
+  if (resolvedUserId) {
+    params.userId = resolvedUserId
+  }
 
   const stylistId = searchParams.get(TRIAL_PARAMS.stylistId)
   if (stylistId && stylistId !== "all") {

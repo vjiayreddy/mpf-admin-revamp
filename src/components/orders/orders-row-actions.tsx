@@ -26,7 +26,9 @@ export type OrdersRowActionsProps = {
   onView: (row: OrdersListRow) => void
   onEdit: (row: OrdersListRow) => void
   onPrint: (row: OrdersListRow) => void
-  onTrial: (row: OrdersListRow) => void
+  onCreateTrial: (row: OrdersListRow) => void
+  onViewTrial: (row: OrdersListRow) => void
+  onEditTrial: (row: OrdersListRow) => void
   onInvoice: (row: OrdersListRow) => void
   onPayments: (row: OrdersListRow) => void
   onStyleHistory: (row: OrdersListRow) => void
@@ -38,7 +40,9 @@ export function OrdersRowActions({
   onView,
   onEdit,
   onPrint,
-  onTrial,
+  onCreateTrial,
+  onViewTrial,
+  onEditTrial,
   onInvoice,
   onPayments,
   onStyleHistory,
@@ -47,6 +51,7 @@ export function OrdersRowActions({
   const hasInvoice = Boolean(
     row.invoices?.some((inv) => inv?._id || inv?.invoiceNo != null)
   )
+  const hasTrial = Boolean(row.orderTrial?._id)
 
   return (
     <DropdownMenu>
@@ -106,13 +111,32 @@ export function OrdersRowActions({
           <IndianRupeeIcon className="size-4 shrink-0" />
           Payments
         </DropdownMenuItem>
-        <DropdownMenuItem
-          className="gap-2 text-sm font-medium"
-          onClick={() => onTrial(row)}
-        >
-          <RulerIcon className="size-4 shrink-0" />
-          {row.orderTrial?._id ? "View trial" : "Enter trial"}
-        </DropdownMenuItem>
+        {hasTrial ? (
+          <>
+            <DropdownMenuItem
+              className="gap-2 text-sm font-medium"
+              onClick={() => onViewTrial(row)}
+            >
+              <EyeIcon className="size-4 shrink-0" />
+              View trial
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="gap-2 text-sm font-medium"
+              onClick={() => onEditTrial(row)}
+            >
+              <RulerIcon className="size-4 shrink-0" />
+              Edit trial
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <DropdownMenuItem
+            className="gap-2 text-sm font-medium"
+            onClick={() => onCreateTrial(row)}
+          >
+            <RulerIcon className="size-4 shrink-0" />
+            Create order trial
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           className="gap-2 text-sm font-medium"
           disabled={invoiceBusy}
