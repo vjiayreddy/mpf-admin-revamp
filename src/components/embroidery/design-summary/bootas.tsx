@@ -7,6 +7,7 @@ import { DesignSection, MetaField } from "./section"
 
 type DesignSummaryBootasProps = {
   bootas?: EmbroideryBoota[] | null
+  sectionIndex?: number
 }
 
 function hasBootaMetrics(boota: EmbroideryBoota) {
@@ -21,13 +22,13 @@ function hasBootaMetrics(boota: EmbroideryBoota) {
 function BootaCard({ title, boota }: { title: string; boota: EmbroideryBoota }) {
   const imgs = boota.referenceImages ?? []
   return (
-    <div className="bg-card overflow-hidden rounded-xl border">
-      <div className="flex items-center justify-between gap-2 border-b px-4 py-2.5">
-        <h4 className="text-sm font-semibold">{title}</h4>
-        {boota.note ? (
-          <p className="text-muted-foreground max-w-[60%] truncate text-xs">
-            {boota.note}
-          </p>
+    <article className="bg-card overflow-hidden rounded-2xl border">
+      <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+        <h4 className="text-sm font-semibold tracking-tight">{title}</h4>
+        {boota.bootaSide ? (
+          <span className="bg-muted text-muted-foreground rounded-md px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase">
+            {boota.bootaSide}
+          </span>
         ) : null}
       </div>
 
@@ -35,7 +36,7 @@ function BootaCard({ title, boota }: { title: string; boota: EmbroideryBoota }) 
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="bg-muted/40 flex h-28 items-center justify-center overflow-hidden rounded-lg border"
+            className="bg-muted/30 flex h-28 items-center justify-center overflow-hidden rounded-xl border"
           >
             {imgs[i] ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -49,15 +50,17 @@ function BootaCard({ title, boota }: { title: string; boota: EmbroideryBoota }) 
             )}
           </div>
         ))}
-        <div className="bg-muted/20 flex h-28 flex-col justify-center rounded-lg border px-3 py-2 text-xs">
-          <span className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wide uppercase">
+        <div className="bg-muted/15 flex h-28 flex-col justify-center rounded-xl border px-3 py-2 text-xs">
+          <span className="text-muted-foreground mb-1 text-[10px] font-medium tracking-[0.08em] uppercase">
             Note
           </span>
-          <span className="line-clamp-4">{boota.note || "—"}</span>
+          <span className="line-clamp-4 leading-relaxed">
+            {boota.note || "—"}
+          </span>
         </div>
       </div>
 
-      <dl className="grid grid-cols-1 gap-3 border-t px-4 py-3 sm:grid-cols-3">
+      <dl className="bg-muted/20 grid grid-cols-1 gap-3 border-t px-4 py-3.5 sm:grid-cols-3">
         <MetaField
           label="Boota size (in)"
           value={
@@ -93,11 +96,14 @@ function BootaCard({ title, boota }: { title: string; boota: EmbroideryBoota }) 
           }
         />
       </dl>
-    </div>
+    </article>
   )
 }
 
-export function DesignSummaryBootas({ bootas }: DesignSummaryBootasProps) {
+export function DesignSummaryBootas({
+  bootas,
+  sectionIndex = 4,
+}: DesignSummaryBootasProps) {
   const list = (bootas ?? []).filter(hasBootaMetrics)
   const front = list.filter((b) => b.bootaSide === "FRONT")
   const back = list.filter((b) => b.bootaSide !== "FRONT")
@@ -106,8 +112,10 @@ export function DesignSummaryBootas({ bootas }: DesignSummaryBootasProps) {
 
   return (
     <DesignSection
+      id="emb-summary-bootas"
+      index={sectionIndex}
       title="Bootas"
-      description="Front and back boota references with size metrics."
+      description={`${list.length} boota ${list.length === 1 ? "entry" : "entries"} with size metrics.`}
     >
       <div className="flex flex-col gap-3">
         {front.map((boota, i) => (

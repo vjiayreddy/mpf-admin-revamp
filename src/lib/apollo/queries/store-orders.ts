@@ -84,8 +84,11 @@ export type StoreOrderItem = {
   outfitStatus?: string | null
   readyItemImage?: string | null
   fabricImage?: string | null
+  fabricImageNote?: string | null
   referenceImage?: string | null
+  referenceImageNote?: string | null
   fitImage?: string | null
+  fitImageNote?: string | null
   qrCodeImage?: string | null
   itemCatId?: string | null
   productionStatus?: string | null
@@ -103,6 +106,10 @@ export type StoreOrderItem = {
   stitchingWorkshopName?: string | null
   trialDate?: StoreOrderTimestamp | null
   readyDate?: StoreOrderTimestamp | null
+  embDetails?: {
+    embroideryId?: string | null
+    embStatus?: string | null
+  } | null
   styleDesign?: {
     handDesign?: string | null
     monogramLetter?: string | null
@@ -115,6 +122,20 @@ export type StoreOrderItem = {
       value?: string | null
     }> | null
   } | null
+  styleDesignHistory?: Array<{
+    styleDesign?: {
+      handDesign?: string | null
+      monogramLetter?: string | null
+      note?: string | null
+      styleAttributes?: Array<{
+        catId?: string | null
+        image?: string | null
+        master_name?: string | null
+        name?: string | null
+        value?: string | null
+      }> | null
+    } | null
+  } | null> | null
   referenceLookBooks?: Array<{
     lookBookId?: string | null
     lookBookName?: string | null
@@ -131,9 +152,26 @@ export type StoreOrderDetail = StoreOrderCalendarRow & {
   customerId?: string | null
   customerPhone?: string | null
   customerCountryCode?: string | null
+  customerEmail?: string | null
+  customerSegment?: string | null
+  customerCity?: string | null
+  customerHeight?: number | null
+  customerWeight?: number | null
+  customerIsStyleClubMember?: string | boolean | null
   personalStylistId?: string | null
+  secondaryStylistIds?: string[] | null
+  studioId?: string | null
+  sourceChannelId?: string | null
+  sourceSubChannelId?: string | null
+  sourceChannel?: string | null
+  sourceSubChannel?: string | null
   balanceAmount?: number | null
   orderTotal?: number | null
+  otherCharges?: number | null
+  deductions?: number | null
+  payment?: number | null
+  afterChargesTotal?: number | null
+  afterDeductionsTotal?: number | null
   eventDate?: StoreOrderTimestamp | null
   deliveryDate?: StoreOrderTimestamp | null
   readyDate?: StoreOrderTimestamp | null
@@ -145,6 +183,10 @@ export type StoreOrderDetail = StoreOrderCalendarRow & {
     date?: StoreOrderTimestamp | null
     isAdvance?: boolean | string | null
     modeOfPayment?: string | null
+    screenShotUrl?: string | null
+    isVerified?: boolean | string | null
+    verifiedBy?: string | null
+    accountRemark?: string | null
   }> | null
   otherChargesBreakdown?: Array<{
     name?: string | null
@@ -155,6 +197,26 @@ export type StoreOrderDetail = StoreOrderCalendarRow & {
     name?: string | null
     amount?: number | null
     note?: string | null
+  }> | null
+  leads?: Array<{
+    _id?: string | null
+    leadId?: string | number | null
+    studioId?: string | null
+    userId?: string | null
+    firstName?: string | null
+    lastName?: string | null
+  }> | null
+  customerCif?: Array<{
+    _id?: string | null
+    cifSerialNumber?: string | number | null
+    firstName?: string | null
+    lastName?: string | null
+    phone?: string | null
+  }> | null
+  linkedLeads?: Array<{
+    leadId?: string | null
+    leadSerialNo?: string | number | null
+    leadLinkOrderCloseDate?: StoreOrderTimestamp | null
   }> | null
 }
 
@@ -225,6 +287,41 @@ export type GetQualityCheckOrdersListData = {
   getAllStoreOrders: QualityCheckOrderRow[]
 }
 
+/** Admin Orders list — lean headers (slim items only for emb/occasion). */
+export type OrdersListRow = {
+  _id: string
+  userId?: string | null
+  customerId?: string | null
+  customerPhone?: string | null
+  customerCountryCode?: string | null
+  orderNo?: string | number | null
+  customerFirstName?: string | null
+  customerLastName?: string | null
+  orderStatus?: string | null
+  sourceChannel?: string | null
+  afterDeductionsTotal?: number | null
+  balanceAmount?: number | null
+  orderDate?: StoreOrderTimestamp | null
+  trialDate?: StoreOrderTimestamp | null
+  deliveryDate?: StoreOrderTimestamp | null
+  readyDate?: StoreOrderTimestamp | null
+  stylist?: StoreOrderStylist[] | null
+  studio?: Array<{ _id?: string | null; name?: string | null } | null> | null
+  orderTrial?: { _id?: string | null } | null
+  invoices?: Array<{
+    _id?: string | null
+    invoiceNo?: string | number | null
+  } | null> | null
+  orderItems?: Array<{
+    hasEmbroidary?: boolean | null
+    occasion?: string | null
+  } | null> | null
+}
+
+export type GetOrdersListData = {
+  getAllStoreOrders: OrdersListRow[]
+}
+
 /** Detail expand payload — items + slim styleDesign (no payments / lookbooks). */
 export type StoreOrderItemsDetail = {
   _id: string
@@ -243,6 +340,20 @@ export type SaveStoreOrderVars = {
 
 export type SaveStoreOrderData = {
   saveStoreOrder: { _id: string } | null
+}
+
+export type InitiateStoreOrderVars = {
+  userId: string
+  stylistId: string
+}
+
+export type InitiateStoreOrderData = {
+  initiateStoreOrder: {
+    stylistId?: string | null
+    orderId?: string | null
+    orderNo?: string | number | null
+    orderStatus?: string | null
+  } | null
 }
 
 export type StoreOrderUpdateAttributes = {
@@ -425,6 +536,61 @@ export const GET_QUALITY_CHECK_ORDERS_LIST = gql`
   }
 `
 
+/** Admin Orders list — lean vs legacy GET_ALL_STORE_ORDERS (no payments/full items). */
+export const GET_ORDERS_LIST = gql`
+  query GetOrdersList(
+    $params: StoreProductOrderFilterInputParams!
+    $page: Int
+    $limit: Int
+  ) {
+    getAllStoreOrders(params: $params, page: $page, limit: $limit) {
+      _id
+      userId
+      customerId
+      customerPhone
+      customerCountryCode
+      orderNo
+      customerFirstName
+      customerLastName
+      orderStatus
+      sourceChannel
+      afterDeductionsTotal
+      balanceAmount
+      orderDate {
+        ${DATE_TIME_FIELDS}
+      }
+      trialDate {
+        ${DATE_TIME_FIELDS}
+      }
+      deliveryDate {
+        ${DATE_TIME_FIELDS}
+      }
+      readyDate {
+        ${DATE_TIME_FIELDS}
+      }
+      stylist {
+        _id
+        name
+      }
+      studio {
+        _id
+        name
+      }
+      orderTrial {
+        _id
+      }
+      invoices {
+        _id
+        invoiceNo
+      }
+      orderItems {
+        hasEmbroidary
+        occasion
+      }
+    }
+  }
+`
+
 /** Trial module All Orders tab — includes nested orderTrial for view/enter. */
 export const GET_TRIAL_STORE_ORDERS = gql`
   query GetTrialStoreOrders(
@@ -529,7 +695,19 @@ export const GET_STORE_ORDER_BY_ID = gql`
       customerId
       customerPhone
       customerCountryCode
+      customerEmail
+      customerSegment
+      customerCity
+      customerHeight
+      customerWeight
+      customerIsStyleClubMember
       personalStylistId
+      secondaryStylistIds
+      studioId
+      sourceChannelId
+      sourceSubChannelId
+      sourceChannel
+      sourceSubChannel
       orderNo
       customerFirstName
       customerLastName
@@ -537,6 +715,11 @@ export const GET_STORE_ORDER_BY_ID = gql`
       remark
       balanceAmount
       orderTotal
+      otherCharges
+      deductions
+      payment
+      afterChargesTotal
+      afterDeductionsTotal
       orderDate {
         ${DATE_TIME_FIELDS}
       }
@@ -566,6 +749,10 @@ export const GET_STORE_ORDER_BY_ID = gql`
         amount
         isAdvance
         modeOfPayment
+        screenShotUrl
+        isVerified
+        verifiedBy
+        accountRemark
         date {
           ${DATE_TIME_FIELDS}
         }
@@ -592,7 +779,11 @@ export const GET_STORE_ORDER_BY_ID = gql`
         outfitStatus
         readyItemImage
         fabricImage
+        fabricImageNote
         referenceImage
+        referenceImageNote
+        fitImage
+        fitImageNote
         itemCatId
         productionStatus
         measurementApprovalStatus
@@ -610,6 +801,10 @@ export const GET_STORE_ORDER_BY_ID = gql`
         readyDate {
           ${DATE_TIME_FIELDS}
         }
+        embDetails {
+          embroideryId
+          embStatus
+        }
         styleDesign {
           handDesign
           monogramLetter
@@ -622,6 +817,20 @@ export const GET_STORE_ORDER_BY_ID = gql`
             value
           }
         }
+        styleDesignHistory {
+          styleDesign {
+            handDesign
+            monogramLetter
+            note
+            styleAttributes {
+              catId
+              image
+              master_name
+              name
+              value
+            }
+          }
+        }
         referenceLookBooks {
           lookBookId
           lookBookName
@@ -632,6 +841,39 @@ export const GET_STORE_ORDER_BY_ID = gql`
           lookBookNo
         }
       }
+      leads {
+        _id
+        leadId
+        studioId
+        userId
+        firstName
+        lastName
+      }
+      customerCif {
+        _id
+        cifSerialNumber
+        firstName
+        lastName
+        phone
+      }
+      linkedLeads {
+        leadId
+        leadSerialNo
+        leadLinkOrderCloseDate {
+          timestamp
+        }
+      }
+    }
+  }
+`
+
+export const INITIATE_STORE_ORDER = gql`
+  mutation InitiateStoreOrder($userId: String, $stylistId: String) {
+    initiateStoreOrder(userId: $userId, stylistId: $stylistId) {
+      stylistId
+      orderId
+      orderNo
+      orderStatus
     }
   }
 `
@@ -641,6 +883,24 @@ export const SAVE_STORE_ORDER = gql`
     saveStoreOrder(params: $params) {
       _id
     }
+  }
+`
+
+export type UpdatePaymentsForStoreOrderVars = {
+  orderId: string
+  payments: Array<Record<string, unknown>>
+}
+
+export type UpdatePaymentsForStoreOrderData = {
+  updatePaymentsForStoreOrder: boolean | null
+}
+
+export const UPDATE_PAYMENTS_FOR_STORE_ORDER = gql`
+  mutation UpdatePaymentsForStoreOrder(
+    $orderId: String!
+    $payments: [PaymentBreakdownInput]!
+  ) {
+    updatePaymentsForStoreOrder(orderId: $orderId, payments: $payments)
   }
 `
 

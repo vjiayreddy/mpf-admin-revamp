@@ -7,7 +7,7 @@ import {
   parseWorkAreaGroups,
 } from "@/lib/embroidery/format"
 
-import { DesignSection, MetaField } from "./section"
+import { DesignSection, MetaField, SpecChip } from "./section"
 
 type DesignSummaryWorkDetailsProps = {
   row: EmbroideryDetail
@@ -24,61 +24,66 @@ export function DesignSummaryWorkDetails({
   const groupedAreas = parseWorkAreaGroups(row.workAreas)
   const complexGroups = groupedAreas.filter(
     (g) =>
-      !(g.names.length === 1 && g.names[0]!.toLowerCase() === g.group.toLowerCase())
+      !(
+        g.names.length === 1 &&
+        g.names[0]!.toLowerCase() === g.group.toLowerCase()
+      )
   )
   const simpleGroups = groupedAreas.filter(
     (g) =>
       g.names.length === 1 && g.names[0]!.toLowerCase() === g.group.toLowerCase()
   )
 
-  const workTypeValue =
-    workTypes.length > 0 ? (
-      <ul className="list-disc space-y-0.5 pl-4">
-        {workTypes.map((w) => (
-          <li key={w}>{formatWorkType(w)}</li>
-        ))}
-      </ul>
-    ) : (
-      "—"
-    )
-
-  const workAreaValue =
-    groupedAreas.length > 0 ? (
-      <div className="grid gap-2 sm:grid-cols-2">
-        {complexGroups.length > 0 ? (
-          <ul className="list-disc space-y-0.5 pl-4">
-            {complexGroups.map((g) => (
-              <li key={g.group}>
-                <span className="font-medium">{g.group}: </span>
-                {g.names.join(", ")}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        {simpleGroups.length > 0 ? (
-          <ul className="list-disc space-y-0.5 pl-4">
-            {simpleGroups.map((g) => (
-              <li key={g.group}>{g.names[0]}</li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-    ) : (
-      "—"
-    )
-
   return (
     <DesignSection
+      id="emb-summary-work"
+      index={3}
       title="Work details"
-      description="Work type, placement areas, distances, and embroidery specs."
+      description="Placement, distances, and embroidery specs for production."
     >
-      <div className="bg-card overflow-hidden rounded-xl border">
-        <dl className="grid gap-4 border-b p-4 sm:grid-cols-2">
-          <MetaField label="Work type" value={workTypeValue} />
-          <MetaField label="Work area" value={workAreaValue} />
-        </dl>
+      <div className="bg-card overflow-hidden rounded-2xl border">
+        <div className="grid gap-5 border-b p-5 sm:grid-cols-2">
+          <div className="space-y-2.5">
+            <p className="text-muted-foreground text-[10px] font-medium tracking-[0.08em] uppercase">
+              Work type
+            </p>
+            {workTypes.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {workTypes.map((w) => (
+                  <SpecChip key={w}>{formatWorkType(w)}</SpecChip>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">—</p>
+            )}
+          </div>
 
-        <dl className="grid gap-4 border-b p-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-2.5">
+            <p className="text-muted-foreground text-[10px] font-medium tracking-[0.08em] uppercase">
+              Work area
+            </p>
+            {groupedAreas.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {complexGroups.map((g) => (
+                  <SpecChip key={g.group}>
+                    <span className="font-medium">{g.group}</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {g.names.join(", ")}
+                    </span>
+                  </SpecChip>
+                ))}
+                {simpleGroups.map((g) => (
+                  <SpecChip key={g.group}>{g.names[0]}</SpecChip>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">—</p>
+            )}
+          </div>
+        </div>
+
+        <dl className="grid gap-4 border-b p-5 sm:grid-cols-3">
           <MetaField
             label="Cuff distance"
             value={formatDistanceAttr(row.otherAttributes, "cuff_distance")}
@@ -93,7 +98,7 @@ export function DesignSummaryWorkDetails({
           />
         </dl>
 
-        <dl className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
           <MetaField label="Length" value={row.length ?? "—"} />
           <MetaField label="BBS" value={row.bbs ?? "—"} />
           <MetaField label="Embroidery type" value={row.embType ?? "—"} />
