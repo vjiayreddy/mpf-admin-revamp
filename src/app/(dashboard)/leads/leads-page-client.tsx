@@ -36,6 +36,10 @@ import {
   latestStatus,
 } from "@/lib/leads/format"
 
+/** Gold accent for key identifiers / contact fields (matches customers grid). */
+const LEAD_IMPORTANT_CLASS =
+  "font-medium text-[#b8860b] dark:text-[#d4af37]"
+
 type LeadIdCellParams = ICellRendererParams<LeadListRow> & {
   onOpen?: (row: LeadListRow) => void
 }
@@ -46,13 +50,35 @@ function LeadIdCell(params: LeadIdCellParams) {
   return (
     <button
       type="button"
-      className="text-primary cursor-pointer font-mono text-sm font-semibold hover:underline"
+      className={`${LEAD_IMPORTANT_CLASS} cursor-pointer font-mono text-sm hover:underline`}
       onClick={(e) => {
         e.stopPropagation()
         params.onOpen?.(row)
       }}
     >
       {row.leadId ?? "—"}
+    </button>
+  )
+}
+
+type LeadNameCellParams = ICellRendererParams<LeadListRow> & {
+  onOpen?: (row: LeadListRow) => void
+}
+
+function LeadNameCell(params: LeadNameCellParams) {
+  const row = params.data
+  if (!row) return null
+  const name = customerFullName(row.firstName, row.lastName)
+  return (
+    <button
+      type="button"
+      className={`${LEAD_IMPORTANT_CLASS} cursor-pointer truncate hover:underline`}
+      onClick={(e) => {
+        e.stopPropagation()
+        params.onOpen?.(row)
+      }}
+    >
+      {name}
     </button>
   )
 }
@@ -171,6 +197,7 @@ export function LeadsPageClient() {
           colId: "orderId",
           headerName: "Order Id",
           minWidth: 100,
+          cellClass: LEAD_IMPORTANT_CLASS,
           valueGetter: (p: ValueGetterParams<LeadListRow>) =>
             p.data?.orders?.[0]?.orderNo ?? "—",
         },
@@ -188,6 +215,7 @@ export function LeadsPageClient() {
           colId: "cifId",
           headerName: "CIF Id",
           minWidth: 100,
+          cellClass: LEAD_IMPORTANT_CLASS,
           valueGetter: (p: ValueGetterParams<LeadListRow>) =>
             p.data?.customerInformationForms?.[0]?.cifSerialNumber ?? "—",
         },
@@ -209,13 +237,14 @@ export function LeadsPageClient() {
           colId: "name",
           headerName: "Name",
           minWidth: 150,
-          valueGetter: (p: ValueGetterParams<LeadListRow>) =>
-            customerFullName(p.data?.firstName, p.data?.lastName),
+          cellRenderer: LeadNameCell,
+          cellRendererParams: { onOpen: openView },
         },
         {
           colId: "phone",
           headerName: "Phone",
           minWidth: 130,
+          cellClass: LEAD_IMPORTANT_CLASS,
           valueGetter: (p: ValueGetterParams<LeadListRow>) =>
             formatPhone(p.data?.countryCode, p.data?.phone),
         },
@@ -230,6 +259,7 @@ export function LeadsPageClient() {
           colId: "status",
           headerName: "Status",
           minWidth: 120,
+          cellClass: LEAD_IMPORTANT_CLASS,
           valueGetter: (p: ValueGetterParams<LeadListRow>) =>
             latestStatus(p.data?.status)?.name ?? "—",
         },
