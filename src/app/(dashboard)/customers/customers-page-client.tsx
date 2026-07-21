@@ -54,7 +54,7 @@ function CustomerNameCell(params: CustomerNameCellParams) {
   return (
     <button
       type="button"
-      className="text-primary cursor-pointer truncate font-medium hover:underline"
+      className="cursor-pointer truncate font-medium text-[#b8860b] hover:underline dark:text-[#d4af37]"
       onClick={(e) => {
         e.stopPropagation()
         if (data._id) onOpenQuickView?.(data._id)
@@ -82,7 +82,7 @@ function CustomerSrNoCell(params: ICellRendererParams<CustomerListRow>) {
   return (
     <Link
       href={`/customers/${data._id}`}
-      className="text-primary font-medium hover:underline"
+      className="font-medium text-[#b8860b] hover:underline dark:text-[#d4af37]"
       onClick={(e) => e.stopPropagation()}
     >
       {data.customerSrNo ?? "Profile"}
@@ -333,9 +333,6 @@ export function CustomersPageClient() {
             aria-label="Filter loaded rows on this page"
             disabled={loading}
           />
-          <span className="text-muted-foreground hidden text-xs sm:inline">
-            Narrows the current page only — not a server search
-          </span>
         </div>
         <DataGrid
           rowData={rows}
