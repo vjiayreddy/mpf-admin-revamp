@@ -1,8 +1,8 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Scissors } from "lucide-react"
 
 import { signOutFully } from "@/lib/auth/sign-out"
 import { NavMain } from "@/components/layout/nav-main"
@@ -35,9 +35,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/" />}>
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <Scissors className="size-4" />
-              </div>
+              <Image
+                src="/logos/mpflogo.png"
+                alt="My Perfect Fit"
+                width={32}
+                height={32}
+                className="size-8 shrink-0 rounded-[5px] object-contain"
+                priority
+              />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold tracking-tight">
                   My Perfect Fit
