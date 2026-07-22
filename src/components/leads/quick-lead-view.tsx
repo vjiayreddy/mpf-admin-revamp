@@ -13,7 +13,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import type { LeadListRow } from "@/lib/apollo/queries/leads"
+import {
+  asLeadDetailList,
+  type LeadListRow,
+} from "@/lib/apollo/queries/leads"
 import {
   customerFullName,
   formatLeadDate,
@@ -144,30 +147,34 @@ export function QuickLeadView({
                 <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                   Status timeline
                 </p>
-                {lead.status?.length ? (
-                  <ul className="mt-2 space-y-2">
-                    {lead.status.map((entry, index) => (
-                      <li
-                        key={entry._id || `${entry.name}-${index}`}
-                        className="flex flex-col gap-0.5 border-b pb-2 last:border-0 last:pb-0"
-                      >
-                        <span className="text-sm font-medium">
-                          {entry.label || entry.name || "—"}
-                        </span>
-                        {entry.note ? (
-                          <span className="text-muted-foreground text-xs">
-                            {entry.note}
+                {(() => {
+                  const statusHistory = asLeadDetailList(lead.status)
+                  if (!statusHistory.length) {
+                    return <p className="mt-1 text-sm">—</p>
+                  }
+                  return (
+                    <ul className="mt-2 space-y-2">
+                      {statusHistory.map((entry, index) => (
+                        <li
+                          key={entry._id || `${entry.name}-${index}`}
+                          className="flex flex-col gap-0.5 border-b pb-2 last:border-0 last:pb-0"
+                        >
+                          <span className="text-sm font-medium">
+                            {entry.label || entry.name || "—"}
                           </span>
-                        ) : null}
-                        <span className="text-muted-foreground text-xs">
-                          {formatLeadDateTime(entry.dateRecorded?.timestamp)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-1 text-sm">—</p>
-                )}
+                          {entry.note ? (
+                            <span className="text-muted-foreground text-xs">
+                              {entry.note}
+                            </span>
+                          ) : null}
+                          <span className="text-muted-foreground text-xs">
+                            {formatLeadDateTime(entry.dateRecorded?.timestamp)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                })()}
               </div>
 
               <Detail label="Remarks" value={lead.remarks || "—"} />
@@ -210,29 +217,48 @@ export function QuickLeadView({
 
               <Detail
                 label="Cross-sell"
-                value={
-                  lead.crossSellingDetails?.remarks ||
-                  lead.crossSellingDetails?.brandPartnerSubCategories
-                    ?.map((c) => c.title || c.name)
+                value={(() => {
+                  const rows = asLeadDetailList(lead.crossSellingDetails)
+                  const labels = rows.flatMap((row) =>
+                    (row.brandPartnerSubCategories ?? []).map(
+                      (c) => c.title || c.name
+                    )
+                  )
+                  const remarks = rows
+                    .map((row) => row.remarks)
                     .filter(Boolean)
-                    .join(", ") ||
-                  "—"
-                }
+                    .join("; ")
+                  return labels.filter(Boolean).join(", ") || remarks || "—"
+                })()}
               />
 
-              {(lead.occasionDetails?.occasion ||
-                lead.occasionDetails?.budget != null) && (
-                <div className="grid grid-cols-2 gap-3">
-                  <Detail
-                    label="Occasion"
-                    value={lead.occasionDetails?.occasion || "—"}
-                  />
-                  <Detail
-                    label="Budget"
-                    value={lead.occasionDetails?.budget ?? "—"}
-                  />
-                </div>
-              )}
+              {(() => {
+                const occasions = asLeadDetailList(lead.occasionDetails)
+                const first = occasions[0]
+                if (!first?.occasion && first?.budget == null) return null
+                return (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Detail
+                      label="Occasion"
+                      value={
+                        occasions
+                          .map((o) => o.occasion)
+                          .filter(Boolean)
+                          .join(", ") || "—"
+                      }
+                    />
+                    <Detail
+                      label="Budget"
+                      value={
+                        occasions
+                          .map((o) => o.budget)
+                          .filter((b) => b != null)
+                          .join(", ") || "—"
+                      }
+                    />
+                  </div>
+                )
+              })()}
             </>
           ) : (
             <p className={cn("text-muted-foreground text-sm")}>

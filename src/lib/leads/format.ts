@@ -33,10 +33,11 @@ export function customerFullName(
 }
 
 export function latestStatus(
-  status?: LeadStatusEntry[] | null
+  status?: LeadStatusEntry | LeadStatusEntry[] | null
 ): LeadStatusEntry | null {
-  if (!status?.length) return null
-  return status[status.length - 1] ?? null
+  const list = Array.isArray(status) ? status : status ? [status] : []
+  if (!list.length) return null
+  return list[list.length - 1] ?? null
 }
 
 export function formatPhone(

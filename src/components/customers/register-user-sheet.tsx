@@ -15,9 +15,12 @@ import { authClient } from "@/lib/auth-client"
 import {
   CREATE_CUSTOMER_DEFAULTS,
   CREATE_USER_FOR_CIF,
+  CREATE_USER_FOR_LEAD,
   CREATE_USER_FOR_ORDER,
   type CreateUserForCifData,
   type CreateUserForCifVars,
+  type CreateUserForLeadData,
+  type CreateUserForLeadVars,
   type CreateUserForOrderData,
   type CreateUserForOrderVars,
   type RegisterUserEndpoint,
@@ -55,6 +58,13 @@ const ENDPOINT_COPY: Record<
     submitLabel: "Create customer",
     success: "Customer created",
   },
+  lead: {
+    title: "Create a new customer",
+    description:
+      "Registers a customer for this lead (createUserForLead). Password defaults to the shared onboarding password.",
+    submitLabel: "Create customer",
+    success: "Customer created",
+  },
 }
 
 export type RegisterUserSheetProps = {
@@ -64,6 +74,7 @@ export type RegisterUserSheetProps = {
    * Which GraphQL mutation to call.
    * - `order` → createUserForOrder (legacy OrderForm)
    * - `cif` → createUserForCIF (customers / CIF / client-connect)
+   * - `lead` → createUserForLead (lead form)
    */
   endpoint?: RegisterUserEndpoint
   onCreated?: (userId: string) => void
@@ -107,11 +118,29 @@ export function RegisterUserSheet({
     CreateUserForOrderVars
   >(CREATE_USER_FOR_ORDER)
 
-  const loading = endpoint === "order" ? orderState.loading : cifState.loading
+  const [createForLead, leadState] = useMutation<
+    CreateUserForLeadData,
+    CreateUserForLeadVars
+  >(CREATE_USER_FOR_LEAD)
+
+  const loading =
+    endpoint === "order"
+      ? orderState.loading
+      : endpoint === "lead"
+        ? leadState.loading
+        : cifState.loading
   const mutationError =
-    endpoint === "order" ? orderState.error : cifState.error
+    endpoint === "order"
+      ? orderState.error
+      : endpoint === "lead"
+        ? leadState.error
+        : cifState.error
   const resetMutation =
-    endpoint === "order" ? orderState.reset : cifState.reset
+    endpoint === "order"
+      ? orderState.reset
+      : endpoint === "lead"
+        ? leadState.reset
+        : cifState.reset
 
   const handleClose = () => {
     setSubmitError(null)
@@ -156,6 +185,24 @@ export function RegisterUserSheet({
                       variables: { userData },
                     })
                     const userId = result.data?.createUserForOrder?.userId
+                    if (!userId) {
+                      const msg =
+                        "Email/mobile may already exist, or no user id was returned."
+                      setSubmitError(msg)
+                      notify.error(msg)
+                      return
+                    }
+                    notify.success(copy.success)
+                    onCreated?.(userId)
+                    handleClose()
+                    return
+                  }
+
+                  if (endpoint === "lead") {
+                    const result = await createForLead({
+                      variables: { userData },
+                    })
+                    const userId = result.data?.createUserForLead?.userId
                     if (!userId) {
                       const msg =
                         "Email/mobile may already exist, or no user id was returned."

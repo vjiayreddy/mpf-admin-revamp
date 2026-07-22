@@ -40,7 +40,7 @@ import {
   type UpdateLeadStatusData,
   type UpdateLeadStatusVars,
 } from "@/lib/apollo/queries/leads"
-import { latestStatus } from "@/lib/leads/format"
+import { latestStatus, timestampToDateInput } from "@/lib/leads/format"
 import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
@@ -79,11 +79,42 @@ const selectClass = cn(
   "disabled:cursor-not-allowed disabled:opacity-50"
 )
 
+/** Map API display/enum strings to select option values. */
+function normalizeStatusValue(raw?: string | null): string {
+  if (!raw) return ""
+  const trimmed = raw.trim()
+  const byValue = LEAD_STATUS_OPTIONS.find(
+    (o) => o.value === trimmed || o.value === trimmed.toLowerCase()
+  )
+  if (byValue) return byValue.value
+  const normalized = trimmed.toLowerCase().replace(/\s+/g, "_")
+  const byNormalized = LEAD_STATUS_OPTIONS.find((o) => o.value === normalized)
+  if (byNormalized) return byNormalized.value
+  const byLabel = LEAD_STATUS_OPTIONS.find(
+    (o) => o.label.toLowerCase() === trimmed.toLowerCase()
+  )
+  return byLabel?.value ?? trimmed
+}
+
+function statusFormValuesFromLead(lead: LeadListRow): StatusFormValues {
+  const last = latestStatus(lead.status)
+  const linked = (lead.linkedOrders ?? []).filter((o) => Boolean(o?.orderId))
+  return {
+    status: normalizeStatusValue(last?.name || last?.label),
+    reason: last?.note?.trim() || "",
+    dateRecorded:
+      timestampToDateInput(last?.dateRecorded?.timestamp) ||
+      timestampToDateInput(lead.currentStatusDate?.timestamp) ||
+      "",
+    orderId: linked[0]?.orderId?.trim() || "",
+  }
+}
+
 type LeadStatusDialogProps = {
   open: boolean
   lead: LeadListRow | null
   onOpenChange: (open: boolean) => void
-  onSaved: () => void
+  onSaved: (patch?: Partial<LeadListRow>) => void
 }
 
 export function LeadStatusDialog({
@@ -140,15 +171,20 @@ export function LeadStatusDialog({
   const hasLinkedOrders = linkedOrders.length > 0
   const busy = updating || linking || isSubmitting
 
+  const hydrateKey = lead
+    ? [
+        lead._id,
+        latestStatus(lead.status)?.name ?? "",
+        latestStatus(lead.status)?.note ?? "",
+        latestStatus(lead.status)?.dateRecorded?.timestamp ?? "",
+        lead.currentStatusDate?.timestamp ?? "",
+        (lead.linkedOrders ?? []).map((o) => o.orderId).join(","),
+      ].join("|")
+    : ""
+
   useEffect(() => {
     if (!open || !lead) return
-    const last = latestStatus(lead.status)
-    reset({
-      status: last?.name || "",
-      reason: last?.note || "",
-      dateRecorded: "",
-      orderId: "",
-    })
+    reset(statusFormValuesFromLead(lead))
     setLinkedOrders(
       (lead.linkedOrders ?? []).filter((o) => Boolean(o?.orderId))
     )
@@ -156,7 +192,7 @@ export function LeadStatusDialog({
     setOtp("")
     setUnlinkError(null)
     setSubmitError(null)
-  }, [open, lead, reset])
+  }, [open, hydrateKey, lead, reset])
 
   const handleIssueOtp = async (orderId: string) => {
     if (!lead?._id || !lead.userId) {
@@ -232,13 +268,15 @@ export function LeadStatusDialog({
       date: null,
     }
 
+    let dateTimestamp: string | null = null
     if (
       LEAD_STATUS_REQUIRES_DATE.has(values.status) &&
       values.dateRecorded
     ) {
-      variables.date = extractDateFormat(
-        new Date(`${values.dateRecorded}T00:00:00`).toISOString()
-      )
+      dateTimestamp = new Date(
+        `${values.dateRecorded}T00:00:00`
+      ).toISOString()
+      variables.date = extractDateFormat(dateTimestamp)
     }
 
     try {
@@ -263,7 +301,39 @@ export function LeadStatusDialog({
         })
       }
 
-      onSaved()
+      const priorStatus = Array.isArray(lead.status)
+        ? lead.status
+        : lead.status
+          ? [lead.status]
+          : []
+      const nextStatusEntry = {
+        name: values.status,
+        label:
+          LEAD_STATUS_OPTIONS.find((o) => o.value === values.status)?.label ??
+          values.status,
+        note: values.reason.trim(),
+        dateRecorded: dateTimestamp
+          ? { timestamp: dateTimestamp }
+          : lead.currentStatusDate,
+      }
+      const patch: Partial<LeadListRow> = {
+        status: [...priorStatus, nextStatusEntry],
+        currentStatusDate: dateTimestamp
+          ? { timestamp: dateTimestamp }
+          : lead.currentStatusDate,
+        linkedOrders:
+          values.status === "order_closed" && values.orderId?.trim()
+            ? [
+                ...(lead.linkedOrders ?? []),
+                {
+                  orderId: values.orderId.trim(),
+                  orderSerialNo: values.orderId.trim(),
+                },
+              ]
+            : lead.linkedOrders,
+      }
+
+      onSaved(patch)
       onOpenChange(false)
       notify.success("Lead status updated")
     } catch (err) {

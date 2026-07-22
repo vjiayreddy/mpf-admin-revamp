@@ -52,8 +52,9 @@ export type LeadCrossSelling = {
 
 export type LeadOccasion = {
   occasion?: string | null
-  budget?: number | null
-  refImage?: string[] | null
+  /** Legacy stores enum strings (FROM_10_TO_20K); some records are numeric. */
+  budget?: number | string | null
+  refImage?: string | string[] | null
   outfitsNote?: string | null
   priceQuote?: number | null
 }
@@ -73,9 +74,10 @@ export type LeadListRow = {
   sourceSubCatId?: string | null
   generatedBySalesTeamId?: string | null
   creditToSalesTeamId?: string | null
-  estimatedValue?: number | null
+  estimatedValue?: number | string | null
   remarks?: string | null
   rating?: number | null
+  persona?: LeadNamedRef[] | null
   leadDate?: LeadTimestamp | null
   followUpDate?: LeadTimestamp | null
   eventDate?: LeadTimestamp | null
@@ -84,14 +86,24 @@ export type LeadListRow = {
   leadLinkOrderCloseDate?: LeadTimestamp | null
   creditedSalesTeam?: LeadNamedRef[] | null
   generatedSalesTeam?: LeadNamedRef[] | null
-  source?: LeadNamedRef[] | null
+  source?: Array<
+    (LeadNamedRef & { subCategory?: LeadNamedRef[] | null }) | null
+  > | null
   studio?: LeadNamedRef[] | null
-  status?: LeadStatusEntry[] | null
+  /** API may return a single status object or an array. */
+  status?: LeadStatusEntry | LeadStatusEntry[] | null
   orders?: LeadOrderRef[] | null
   linkedOrders?: LeadLinkedOrder[] | null
   customerInformationForms?: LeadCifRef[] | null
-  crossSellingDetails?: LeadCrossSelling | null
-  occasionDetails?: LeadOccasion | null
+  /** API may return a single object or an array depending on mutation history. */
+  crossSellingDetails?: LeadCrossSelling | LeadCrossSelling[] | null
+  occasionDetails?: LeadOccasion | LeadOccasion[] | null
+}
+
+/** Normalize lead nested detail that may be a single object or an array. */
+export function asLeadDetailList<T>(value: T | T[] | null | undefined): T[] {
+  if (value == null) return []
+  return Array.isArray(value) ? value : [value]
 }
 
 export type LeadRoleFilterItem = {
@@ -246,6 +258,10 @@ const LEAD_FIELDS = `
     _id
     name
   }
+  persona {
+    _id
+    name
+  }
   customerInformationForms {
     _id
     cifSerialNumber
@@ -259,6 +275,10 @@ const LEAD_FIELDS = `
   source {
     _id
     name
+    subCategory {
+      _id
+      name
+    }
   }
   studio {
     _id
