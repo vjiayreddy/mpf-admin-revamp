@@ -37,3 +37,20 @@ export const maintenanceStatus = sqliteTable("maintenance_status", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   updatedBy: text("updated_by"),
 })
+
+/**
+ * Per-user “save for later” bookmarks (orders, leads, …).
+ * Unique on (userId, entityType, entityId).
+ */
+export const entityBookmarks = sqliteTable("entity_bookmarks", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  entityType: text("entity_type").notNull(), // "order" | "lead"
+  entityId: text("entity_id").notNull(),
+  label: text("label").notNull(),
+  href: text("href").notNull(),
+  subtitle: text("subtitle"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .defaultNow()
+    .notNull(),
+})

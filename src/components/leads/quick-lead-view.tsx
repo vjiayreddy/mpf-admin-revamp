@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import Link from "next/link"
 import { PencilIcon } from "lucide-react"
 
+import { EntityBookmarkButton } from "@/components/bookmarks/entity-bookmark-button"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -268,6 +269,19 @@ export function QuickLeadView({
         </div>
 
         <SheetFooter className="gap-2 sm:flex-row">
+          {lead?._id ? (
+            <EntityBookmarkButton
+              entityType="lead"
+              entityId={lead._id}
+              label={
+                lead.leadId != null
+                  ? `Lead #${lead.leadId}`
+                  : `Lead ${lead._id.slice(-6)}`
+              }
+              href={`/leads/form?leadId=${encodeURIComponent(lead._id)}`}
+              subtitle={name !== "—" ? name : null}
+            />
+          ) : null}
           {lead && onEdit ? (
             <Button
               type="button"

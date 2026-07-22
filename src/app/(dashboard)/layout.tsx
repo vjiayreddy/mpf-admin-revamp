@@ -3,6 +3,7 @@ import { MaintenanceProvider } from "@/components/maintenance/maintenance-provid
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SiteHeader } from "@/components/layout/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { BookmarksProvider } from "@/hooks/use-bookmarks"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
@@ -31,7 +32,9 @@ export default async function DashboardLayout({
           userImage={session.user.image}
         />
         <MaintenanceProvider>
-          <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
+          <BookmarksProvider>
+            <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
+          </BookmarksProvider>
         </MaintenanceProvider>
       </SidebarInset>
     </SidebarProvider>

@@ -1,6 +1,8 @@
 "use client"
 
 import {
+  BookmarkCheckIcon,
+  BookmarkIcon,
   CalendarPlusIcon,
   EyeIcon,
   MessageCircleIcon,
@@ -18,8 +20,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useBookmarks } from "@/hooks/use-bookmarks"
 import type { LeadListRow } from "@/lib/apollo/queries/leads"
-import { openWhatsApp } from "@/lib/leads/format"
+import { customerFullName, openWhatsApp } from "@/lib/leads/format"
 
 function phoneDigits(row: LeadListRow) {
   return `${row.countryCode ?? ""}${row.phone ?? ""}`.replace(/\D/g, "")
@@ -39,7 +42,11 @@ export function LeadRowActions({
   onBookAppointment,
 }: LeadRowActionsProps) {
   const router = useRouter()
+  const { isBookmarked, toggleBookmark } = useBookmarks()
   const digits = phoneDigits(row)
+  const leadId = row._id?.trim() || ""
+  const saved = leadId ? isBookmarked("lead", leadId) : false
+  const name = customerFullName(row.firstName, row.lastName)
 
   return (
     <DropdownMenu>
@@ -70,6 +77,29 @@ export function LeadRowActions({
         >
           <PencilIcon className="size-4" />
           Edit lead
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={!leadId}
+          onClick={() => {
+            if (!leadId) return
+            void toggleBookmark({
+              entityType: "lead",
+              entityId: leadId,
+              label:
+                row.leadId != null
+                  ? `Lead #${row.leadId}`
+                  : `Lead ${leadId.slice(-6)}`,
+              href: `/leads/form?leadId=${encodeURIComponent(leadId)}`,
+              subtitle: name !== "—" ? name : null,
+            })
+          }}
+        >
+          {saved ? (
+            <BookmarkCheckIcon className="size-4 text-amber-600 dark:text-amber-400" />
+          ) : (
+            <BookmarkIcon className="size-4" />
+          )}
+          {saved ? "Remove from saved" : "Save for later"}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onBookAppointment}>
           <CalendarPlusIcon className="size-4" />

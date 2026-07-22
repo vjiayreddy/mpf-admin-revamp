@@ -7,6 +7,7 @@ import { FilePenIcon, Loader2Icon, XIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { DataGrid } from "@/components/data-grid/data-grid"
+import { EntityBookmarkButton } from "@/components/bookmarks/entity-bookmark-button"
 import {
   EmbroideryDesignSummaryDialog,
   type EmbroideryDesignSummaryContext,
@@ -242,6 +243,19 @@ export function QuickOrderView({
                 </DialogDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                {orderId ? (
+                  <EntityBookmarkButton
+                    entityType="order"
+                    entityId={orderId}
+                    label={
+                      (detail?.orderNo ?? order?.orderNo) != null
+                        ? `Order ${detail?.orderNo ?? order?.orderNo}`
+                        : `Order ${orderId.slice(-6)}`
+                    }
+                    href={`/orders/form?orderId=${encodeURIComponent(orderId)}`}
+                    subtitle={name !== "—" ? name : customerId || null}
+                  />
+                ) : null}
                 <Button
                   type="button"
                   size="sm"

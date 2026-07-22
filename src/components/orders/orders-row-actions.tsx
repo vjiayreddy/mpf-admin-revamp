@@ -1,6 +1,8 @@
 "use client"
 
 import {
+  BookmarkCheckIcon,
+  BookmarkIcon,
   ClipboardListIcon,
   EyeIcon,
   FilePenIcon,
@@ -19,7 +21,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useBookmarks } from "@/hooks/use-bookmarks"
 import type { OrdersListRow } from "@/lib/apollo/queries/store-orders"
+import { customerFullName } from "@/lib/track-orders/format"
 
 export type OrdersRowActionsProps = {
   row: OrdersListRow
@@ -48,6 +52,9 @@ export function OrdersRowActions({
   onStyleHistory,
   invoiceBusy,
 }: OrdersRowActionsProps) {
+  const { isBookmarked, toggleBookmark } = useBookmarks()
+  const orderId = row._id?.trim() || ""
+  const saved = orderId ? isBookmarked("order", orderId) : false
   const hasInvoice = Boolean(
     row.invoices?.some((inv) => inv?._id || inv?.invoiceNo != null)
   )
@@ -96,6 +103,34 @@ export function OrdersRowActions({
         >
           <FilePenIcon className="size-4 shrink-0" />
           Edit order
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="gap-2 text-sm font-medium"
+          disabled={!orderId}
+          onClick={() => {
+            if (!orderId) return
+            const name = customerFullName(
+              row.customerFirstName,
+              row.customerLastName
+            )
+            void toggleBookmark({
+              entityType: "order",
+              entityId: orderId,
+              label:
+                row.orderNo != null
+                  ? `Order ${row.orderNo}`
+                  : `Order ${orderId.slice(-6)}`,
+              href: `/orders/form?orderId=${encodeURIComponent(orderId)}`,
+              subtitle: name !== "—" ? name : row.customerId || null,
+            })
+          }}
+        >
+          {saved ? (
+            <BookmarkCheckIcon className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          ) : (
+            <BookmarkIcon className="size-4 shrink-0" />
+          )}
+          {saved ? "Remove from saved" : "Save for later"}
         </DropdownMenuItem>
         <DropdownMenuItem
           className="gap-2 text-sm font-medium"

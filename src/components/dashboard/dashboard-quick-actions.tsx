@@ -6,13 +6,12 @@ import {
   CalendarDaysIcon,
   ClipboardCheckIcon,
   FileTextIcon,
-  PlusIcon,
   RulerIcon,
   ScissorsIcon,
   UsersIcon,
 } from "lucide-react"
 
-const SECONDARY_ACTIONS = [
+const ACTIONS = [
   {
     label: "Appointments",
     href: "/appointments",
@@ -52,31 +51,18 @@ const SECONDARY_ACTIONS = [
 
 export function DashboardQuickActions() {
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex w-full flex-col gap-3">
       <div>
-        <h2 className="text-sm font-medium">Quick actions</h2>
+        <h2 className="text-base font-semibold tracking-tight sm:text-lg">
+          Quick actions
+        </h2>
         <p className="text-muted-foreground text-sm">
           Start work without hunting the sidebar.
         </p>
       </div>
 
-      <Link
-        href="/orders/form"
-        className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-3 rounded-xl px-4 py-4 transition-colors"
-      >
-        <span className="bg-primary-foreground/15 flex size-10 items-center justify-center rounded-lg">
-          <PlusIcon className="size-5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">New order</span>
-          <span className="block text-xs opacity-80">
-            Create a store order for a customer
-          </span>
-        </span>
-      </Link>
-
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
-        {SECONDARY_ACTIONS.map((action) => {
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7">
+        {ACTIONS.map((action) => {
           const Icon = action.icon
           return (
             <Link

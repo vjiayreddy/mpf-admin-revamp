@@ -1,9 +1,20 @@
 import type {
+  BookmarkEntityType,
+  BookmarksResponse,
+  EntityBookmarkDto,
+} from "@/lib/prefs/bookmarks"
+import type {
   GridPresetDto,
   GridPresetsResponse,
 } from "@/lib/prefs/grid-presets"
 
-export type { GridPresetDto, GridPresetsResponse }
+export type {
+  BookmarkEntityType,
+  BookmarksResponse,
+  EntityBookmarkDto,
+  GridPresetDto,
+  GridPresetsResponse,
+}
 
 async function parseJson<T>(res: Response): Promise<T> {
   const data = (await res.json().catch(() => ({}))) as T & { error?: string }
@@ -111,4 +122,53 @@ export async function resetGridWorkingPreset(
     credentials: "same-origin",
   })
   return parseJson<GridPresetsResponse>(res)
+}
+
+export async function fetchBookmarks(): Promise<BookmarksResponse> {
+  const res = await fetch("/api/prefs/bookmarks", {
+    method: "GET",
+    credentials: "same-origin",
+  })
+  return parseJson<BookmarksResponse>(res)
+}
+
+export async function addEntityBookmark(input: {
+  entityType: BookmarkEntityType
+  entityId: string
+  label: string
+  href?: string
+  subtitle?: string | null
+}): Promise<BookmarksResponse> {
+  const res = await fetch("/api/prefs/bookmarks", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  })
+  return parseJson<BookmarksResponse>(res)
+}
+
+export async function removeEntityBookmark(
+  entityType: BookmarkEntityType,
+  entityId: string
+): Promise<BookmarksResponse> {
+  const params = new URLSearchParams({ entityType, entityId })
+  const res = await fetch(`/api/prefs/bookmarks?${params}`, {
+    method: "DELETE",
+    credentials: "same-origin",
+  })
+  return parseJson<BookmarksResponse>(res)
+}
+
+export async function removeBookmarkById(
+  bookmarkId: string
+): Promise<BookmarksResponse> {
+  const res = await fetch(
+    `/api/prefs/bookmarks/${encodeURIComponent(bookmarkId)}`,
+    {
+      method: "DELETE",
+      credentials: "same-origin",
+    }
+  )
+  return parseJson<BookmarksResponse>(res)
 }
