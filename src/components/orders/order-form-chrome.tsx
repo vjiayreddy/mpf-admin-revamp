@@ -130,6 +130,10 @@ export function OrderFormHeader({
   canSave,
   onCancelHref = "/orders",
   onLeave,
+  formId = "orders-form",
+  saveLabel = "Save order",
+  backAriaLabel = "Back to orders",
+  showActions = true,
 }: {
   title: string
   subtitle?: string
@@ -139,6 +143,10 @@ export function OrderFormHeader({
   onCancelHref?: string
   /** When set, Back/Cancel call this instead of navigating immediately. */
   onLeave?: () => void
+  formId?: string
+  saveLabel?: string
+  backAriaLabel?: string
+  showActions?: boolean
 }) {
   const leaveButtonProps = onLeave
     ? {
@@ -161,7 +169,7 @@ export function OrderFormHeader({
             variant="ghost"
             size="icon-sm"
             className="mt-0.5 size-8 shrink-0"
-            aria-label="Back to orders"
+            aria-label={backAriaLabel}
             {...leaveButtonProps}
           >
             <ArrowLeftIcon className="size-4" />
@@ -180,19 +188,21 @@ export function OrderFormHeader({
             ) : null}
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2 sm:justify-end">
-          <Button variant="outline" {...leaveButtonProps}>
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="orders-form"
-            disabled={!canSave || saving}
-          >
-            {saving ? <Loader2Icon className="size-4 animate-spin" /> : null}
-            {saving ? "Saving…" : "Save order"}
-          </Button>
-        </div>
+        {showActions ? (
+          <div className="flex shrink-0 items-center gap-2 sm:justify-end">
+            <Button variant="outline" {...leaveButtonProps}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form={formId}
+              disabled={!canSave || saving}
+            >
+              {saving ? <Loader2Icon className="size-4 animate-spin" /> : null}
+              {saving ? "Saving…" : saveLabel}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import type {
   CellClassParams,
   ColDef,
@@ -23,9 +23,11 @@ import { Input } from "@/components/ui/input"
 import { useLeadsList } from "@/hooks/use-leads-list"
 import {
   GET_ALL_LEADS,
+  asLeadDetailList,
   type GetAllLeadsData,
   type GetAllLeadsVars,
   type LeadListRow,
+  type LeadNamedRef,
 } from "@/lib/apollo/queries/leads"
 import {
   customerFullName,
@@ -116,26 +118,60 @@ export function LeadsPageClient() {
   const [statusOpen, setStatusOpen] = useState(false)
   const [bookOpen, setBookOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [rowPatches, setRowPatches] = useState<
+    Record<string, Partial<LeadListRow>>
+  >({})
+
+  const rowsRef = useRef(rows)
+  rowsRef.current = rows
+
+  const displayRows = useMemo(() => {
+    if (Object.keys(rowPatches).length === 0) return rows
+    return rows.map((row) => {
+      const patch = rowPatches[row._id]
+      return patch ? { ...row, ...patch } : row
+    })
+  }, [rows, rowPatches])
 
   const [fetchExport] = useLazyQuery<GetAllLeadsData, GetAllLeadsVars>(
     GET_ALL_LEADS,
     { fetchPolicy: "network-only" }
   )
 
-  const openView = useCallback((row: LeadListRow) => {
-    setSelected(row)
-    setViewOpen(true)
-  }, [])
+  const resolveLead = useCallback(
+    (leadId: string, fallback?: LeadListRow | null) => {
+      const fromRows = rowsRef.current.find((r) => r._id === leadId)
+      const patch = rowPatches[leadId]
+      const base = fromRows ?? fallback ?? null
+      if (!base) return null
+      return patch ? { ...base, ...patch } : base
+    },
+    [rowPatches]
+  )
 
-  const openStatus = useCallback((row: LeadListRow) => {
-    setSelected(row)
-    setStatusOpen(true)
-  }, [])
+  const openView = useCallback(
+    (row: LeadListRow) => {
+      setSelected(resolveLead(row._id, row))
+      setViewOpen(true)
+    },
+    [resolveLead]
+  )
 
-  const openBook = useCallback((row: LeadListRow) => {
-    setSelected(row)
-    setBookOpen(true)
-  }, [])
+  const openStatus = useCallback(
+    (row: LeadListRow) => {
+      setSelected(resolveLead(row._id, row))
+      setStatusOpen(true)
+    },
+    [resolveLead]
+  )
+
+  const openBook = useCallback(
+    (row: LeadListRow) => {
+      setSelected(resolveLead(row._id, row))
+      setBookOpen(true)
+    },
+    [resolveLead]
+  )
 
   const handleExport = useCallback(async () => {
     setExporting(true)
@@ -297,11 +333,15 @@ export function LeadsPageClient() {
           colId: "crossSell",
           headerName: "Cross Selling",
           minWidth: 140,
-          valueGetter: (p: ValueGetterParams<LeadListRow>) =>
-            p.data?.crossSellingDetails?.brandPartnerSubCategories
-              ?.map((c) => c.name || c.title)
-              .filter(Boolean)
-              .join(", ") || "—",
+          valueGetter: (p: ValueGetterParams<LeadListRow>) => {
+            const rows = asLeadDetailList(p.data?.crossSellingDetails)
+            const labels = rows.flatMap((row) =>
+              (row.brandPartnerSubCategories ?? []).map(
+                (c: LeadNamedRef) => c.name || c.title
+              )
+            )
+            return labels.filter(Boolean).join(", ") || "—"
+          },
         },
         {
           colId: "studio",
@@ -386,7 +426,7 @@ export function LeadsPageClient() {
           />
         </div>
         <DataGrid
-          rowData={rows}
+          rowData={displayRows}
           columnDefs={columnDefs}
           loading={loading}
           getRowId={(params) => params.data._id}
@@ -398,7 +438,7 @@ export function LeadsPageClient() {
         <DataGridPagination
           page={page}
           pageSize={pageSize}
-          currentPageCount={rows.length}
+          currentPageCount={displayRows.length}
           onPageChange={setPage}
           disabled={loading}
         />
@@ -422,9 +462,18 @@ export function LeadsPageClient() {
         lead={selected}
         onOpenChange={(open) => {
           setStatusOpen(open)
-          if (!open) setSelected(null)
+          if (!open && !viewOpen && !bookOpen) setSelected(null)
         }}
-        onSaved={reloadLeads}
+        onSaved={(patch) => {
+          if (selected?._id && patch) {
+            setRowPatches((prev) => ({
+              ...prev,
+              [selected._id]: { ...prev[selected._id], ...patch },
+            }))
+            setSelected((prev) => (prev ? { ...prev, ...patch } : prev))
+          }
+          reloadLeads()
+        }}
       />
 
       <BookLeadAppointmentDialog
@@ -432,7 +481,7 @@ export function LeadsPageClient() {
         lead={selected}
         onOpenChange={(open) => {
           setBookOpen(open)
-          if (!open) setSelected(null)
+          if (!open && !viewOpen && !statusOpen) setSelected(null)
         }}
         onSaved={reloadLeads}
       />

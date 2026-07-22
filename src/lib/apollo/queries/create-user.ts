@@ -50,6 +50,24 @@ export type CreateUserForOrderVars = {
   userData: CreateUserInput
 }
 
+export const CREATE_USER_FOR_LEAD = gql`
+  mutation CreateUserForLead($userData: createUserInput) {
+    createUserForLead(userData: $userData) {
+      userId
+    }
+  }
+`
+
+export type CreateUserForLeadData = {
+  createUserForLead: {
+    userId: string
+  }
+}
+
+export type CreateUserForLeadVars = {
+  userData: CreateUserInput
+}
+
 /** @deprecated Prefer CreateUserInput */
 export type CreateUserForCifInput = CreateUserInput
 
@@ -61,4 +79,4 @@ export const CREATE_CUSTOMER_DEFAULTS = {
   fallbackStylistId: "5de75fa5a72f8129f42bba2a",
 } as const
 
-export type RegisterUserEndpoint = "cif" | "order"
+export type RegisterUserEndpoint = "cif" | "order" | "lead"

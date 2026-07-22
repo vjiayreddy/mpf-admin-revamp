@@ -90,26 +90,6 @@ export function SecondaryStylistSelect({
         </Label>
       ) : null}
 
-      {selectedStylists.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {selectedStylists.map((stylist) => (
-            <button
-              key={stylist._id}
-              type="button"
-              disabled={disabled}
-              onClick={() => remove(stylist._id)}
-              className="bg-muted hover:bg-muted/80 inline-flex max-w-full items-center gap-1 rounded-md border px-2 py-0.5 text-xs"
-              title="Remove stylist"
-            >
-              <span className="truncate">
-                {stylist.name || stylist.email || stylist._id}
-              </span>
-              <XIcon className="size-3 shrink-0 opacity-70" />
-            </button>
-          ))}
-        </div>
-      ) : null}
-
       <Popover
         open={open}
         onOpenChange={(next) => {
@@ -119,20 +99,57 @@ export function SecondaryStylistSelect({
       >
         <PopoverTrigger
           id={id}
+          type="button"
           disabled={disabled || loading}
           className={cn(
-            "border-input flex h-9 w-full items-center justify-between gap-2 rounded-lg border bg-transparent px-2.5 text-sm outline-none",
+            "border-input flex min-h-9 w-full items-center gap-1.5 rounded-lg border bg-transparent px-2 py-1.5 text-sm outline-none",
             "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
             "disabled:cursor-not-allowed disabled:opacity-50"
           )}
         >
-          <span className="text-muted-foreground truncate text-left">
-            {loading
-              ? "Loading stylists…"
-              : selectedStylists.length
-                ? "Add or remove secondary stylists"
-                : "Select secondary stylists"}
-          </span>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 text-left">
+            {loading ? (
+              <span className="text-muted-foreground px-0.5">
+                Loading stylists…
+              </span>
+            ) : selectedStylists.length > 0 ? (
+              selectedStylists.map((stylist) => (
+                <span
+                  key={stylist._id}
+                  className="bg-muted inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs"
+                >
+                  <span className="truncate">
+                    {stylist.name || stylist.email || stylist._id}
+                  </span>
+                  <span
+                    role="button"
+                    tabIndex={-1}
+                    className="hover:bg-background/80 shrink-0 rounded-sm p-0.5"
+                    title="Remove stylist"
+                    aria-label="Remove stylist"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      remove(stylist._id)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        remove(stylist._id)
+                      }
+                    }}
+                  >
+                    <XIcon className="size-3 opacity-70" />
+                  </span>
+                </span>
+              ))
+            ) : (
+              <span className="text-muted-foreground px-0.5">
+                Select secondary stylists
+              </span>
+            )}
+          </div>
           <ChevronsUpDownIcon className="size-3.5 shrink-0 opacity-50" />
         </PopoverTrigger>
         <PopoverContent

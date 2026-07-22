@@ -15,6 +15,7 @@ import {
 import {
   createCustomerDefaultValues,
   createCustomerSchema,
+  guessCreateCustomerPrefill,
   resolveCreateCustomerEmail,
   splitPhoneForApi,
   type CreateCustomerFormValues,

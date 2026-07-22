@@ -1,25 +1,51 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowLeftIcon } from "lucide-react"
-import Link from "next/link"
+import { UserRoundSearchIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Controller, useForm } from "react-hook-form"
-import { z } from "zod"
+import { Controller, useForm, useWatch, type Resolver } from "react-hook-form"
+import { isValidPhoneNumber } from "react-phone-number-input"
 
+import { RegisterUserSheet } from "@/components/customers/register-user-sheet"
 import { StylistSearchSelect } from "@/components/customers/stylist-search-select"
+import { LeadCrossSellSection } from "@/components/leads/lead-cross-sell-section"
+import { LeadOccasionSection } from "@/components/leads/lead-occasion-section"
+import { PersonaMultiSelect } from "@/components/leads/persona-multi-select"
+import { CustomerSearchSelect } from "@/components/orders/customer-search-select"
+import { OrderFormHeader } from "@/components/orders/order-form-chrome"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { PhoneInput } from "@/components/ui/phone-input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  LEAD_ESTIMATED_VALUE_OPTIONS,
+} from "@/config/lead-form"
 import { LEAD_RATING_OPTIONS } from "@/config/lead-filters"
 import { useAllStudios } from "@/hooks/use-all-studios"
 import { useAllStylists } from "@/hooks/use-all-stylists"
-import { extractDateFormat } from "@/lib/appointments/date-payload"
+import { personalStylistIdFromTeamsJson } from "@/lib/appointments/build-appointments-filter"
+import {
+  GET_BRAND_PARTNER_SUB_CATEGORIES,
+  brandPartnerSubCategoryLabel,
+  type GetBrandPartnerSubCategoriesByFilterData,
+  type GetBrandPartnerSubCategoriesByFilterVars,
+} from "@/lib/apollo/queries/brand-partners"
+import {
+  GET_USER,
+  type GetUserData,
+  type GetUserVars,
+} from "@/lib/apollo/queries/get-user"
 import {
   GET_LATEST_LEAD_ID,
   GET_SINGLE_LEAD,
@@ -27,45 +53,38 @@ import {
   type GetLatestLeadIdData,
   type GetSingleLeadData,
   type GetSingleLeadVars,
-  type LeadInput,
+  type LeadListRow,
   type SaveLeadData,
   type SaveLeadVars,
 } from "@/lib/apollo/queries/leads"
-import { splitPhoneForApi } from "@/lib/customers/create-customer-schema"
+import {
+  GET_PERSONAS,
+  PERSONA_MASTER_NAME,
+  type GetUserAttributeMasterData,
+  type GetUserAttributeMasterVars,
+} from "@/lib/apollo/queries/personas"
+import {
+  GET_ALL_SOURCE_CATEGORIES,
+  type GetAllSourceCategoriesData,
+} from "@/lib/apollo/queries/sources"
+import type { UserListItem } from "@/lib/apollo/queries/users"
+import { authClient } from "@/lib/auth-client"
+import { guessCreateCustomerPrefill } from "@/lib/customers/create-customer-schema"
+import type { CreateCustomerFormValues } from "@/lib/customers/create-customer-schema"
 import { timestampToDateInput } from "@/lib/leads/format"
+import {
+  buildLeadBody,
+  leadFormSchema,
+  newCrossSellRow,
+  newOccasionRow,
+  refImageFromLead,
+  todayDateInput,
+  type LeadCrossSellRow,
+  type LeadFormValues,
+  type LeadOccasionRow,
+} from "@/lib/leads/lead-form-schema"
 import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
-import { isValidPhoneNumber } from "react-phone-number-input"
-
-const leadFormSchema = z.object({
-  leadId: z.string().optional(),
-  userId: z.string().min(1, "User id is required"),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  phone: z
-    .string()
-    .trim()
-    .min(1, "Phone is required")
-    .refine((value) => isValidPhoneNumber(value), {
-      message: "Enter a valid phone number.",
-    }),
-  email: z.string().email("Invalid email").or(z.literal("")).optional(),
-  cityName: z.string().optional(),
-  remarks: z.string().optional(),
-  rating: z.string().optional(),
-  creditToSalesTeamId: z.string().optional(),
-  studioId: z.string().optional(),
-  leadDate: z.string().optional(),
-  followUpDate: z.string().optional(),
-  eventDate: z.string().optional(),
-  expClosureDate: z.string().optional(),
-  occasion: z.string().optional(),
-  budget: z.string().optional(),
-  estimatedValue: z.string().optional(),
-  crossSellRemarks: z.string().optional(),
-})
-
-type LeadFormValues = z.infer<typeof leadFormSchema>
 
 /** Build E.164 from legacy countryCode + national phone for the PhoneInput. */
 function toE164Phone(
@@ -77,8 +96,78 @@ function toE164Phone(
   if (raw.startsWith("+") && isValidPhoneNumber(raw)) return raw
   const code = (countryCode || "91").replace(/^\+/, "").replace(/\D/g, "")
   const national = raw.replace(/\D/g, "")
-  const e164 = `+${code}${national}`
-  return e164
+  return `+${code}${national}`
+}
+
+function normalizeToArray<T>(value: T | T[] | null | undefined): T[] {
+  if (value == null) return []
+  return Array.isArray(value) ? value : [value]
+}
+
+function mapOccasionsFromLead(lead: LeadListRow): LeadOccasionRow[] {
+  return normalizeToArray(lead.occasionDetails).map((item) =>
+    newOccasionRow({
+      occasion: item.occasion ?? "",
+      budget: item.budget != null ? String(item.budget) : "",
+      outfitsNote: item.outfitsNote ?? "",
+      priceQuote: item.priceQuote != null ? String(item.priceQuote) : "",
+      refImage: refImageFromLead(item.refImage),
+    })
+  )
+}
+
+function mapCrossSellsFromLead(lead: LeadListRow): LeadCrossSellRow[] {
+  return normalizeToArray(lead.crossSellingDetails).map((item) =>
+    newCrossSellRow({
+      brandPartnerSubCatIds: item.brandPartnerSubCatIds ?? [],
+      remarks: item.remarks ?? "",
+    })
+  )
+}
+
+function mapLeadToFormValues(lead: LeadListRow): LeadFormValues {
+  return {
+    leadId: lead.leadId != null ? String(lead.leadId) : "",
+    userId: lead.userId || "",
+    firstName: lead.firstName || "",
+    lastName: lead.lastName || "",
+    phone: toE164Phone(lead.countryCode, lead.phone),
+    email: lead.email || "",
+    cityName: lead.cityName || "",
+    remarks: lead.remarks || "",
+    rating: lead.rating != null ? String(lead.rating) : "",
+    creditToSalesTeamId:
+      lead.creditToSalesTeamId || lead.creditedSalesTeam?.[0]?._id || "",
+    generatedBySalesTeamId:
+      lead.generatedBySalesTeamId || lead.generatedSalesTeam?.[0]?._id || "",
+    studioId: lead.studioId || lead.studio?.[0]?._id || "",
+    sourceCatId: lead.sourceCatId || lead.source?.[0]?._id || "",
+    sourceSubCatId:
+      lead.sourceSubCatId || lead.source?.[0]?.subCategory?.[0]?._id || "",
+    personaIds:
+      lead.persona
+        ?.map((p) => p?._id)
+        .filter((id): id is string => Boolean(id?.trim())) ?? [],
+    leadDate: timestampToDateInput(lead.leadDate?.timestamp),
+    followUpDate: timestampToDateInput(
+      lead.followUpDate?.timestamp || lead.currentStatusDate?.timestamp
+    ),
+    eventDate: timestampToDateInput(lead.eventDate?.timestamp),
+    expClosureDate: timestampToDateInput(lead.expClosureDate?.timestamp),
+    estimatedValue:
+      lead.estimatedValue != null ? String(lead.estimatedValue) : "",
+    occasions: mapOccasionsFromLead(lead),
+    crossSells: mapCrossSellsFromLead(lead),
+  }
+}
+
+function customerDisplayLabel(user: UserListItem): string {
+  const name =
+    user.fullName?.trim() ||
+    [user.firstName, user.lastName].filter(Boolean).join(" ").trim()
+  const parts = [name, user.customerSrNo != null ? `#${user.customerSrNo}` : ""]
+    .filter(Boolean)
+  return parts.join(" · ") || user._id
 }
 
 const selectClass = cn(
@@ -87,7 +176,8 @@ const selectClass = cn(
   "disabled:cursor-not-allowed disabled:opacity-50"
 )
 
-const sectionClass = "bg-card flex flex-col gap-3 rounded-lg border p-4"
+const sectionClass =
+  "bg-card flex flex-col gap-3 rounded-xl border p-4 shadow-xs"
 
 function SectionTitle({
   title,
@@ -112,16 +202,25 @@ function Field({
   children,
   className,
   error,
+  required,
 }: {
   id: string
   label: string
   children: ReactNode
   className?: string
   error?: string
+  required?: boolean
 }) {
   return (
     <div className={className ?? "space-y-1.5"}>
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id}>
+        {label}
+        {required ? (
+          <span className="text-destructive ml-0.5" aria-hidden>
+            *
+          </span>
+        ) : null}
+      </Label>
       {children}
       {error ? (
         <p className="text-destructive text-xs" role="alert">
@@ -132,100 +231,63 @@ function Field({
   )
 }
 
-function dateInputToFilter(value?: string) {
-  if (!value?.trim()) return undefined
-  return extractDateFormat(new Date(`${value}T00:00:00`).toISOString())
-}
-
-function buildLeadBody(
-  values: LeadFormValues,
-  opts: { mongoId?: string; leadIdNumber?: number }
-): LeadInput {
-  const { countryCode, phone } = splitPhoneForApi(values.phone.trim())
-  const body: LeadInput = {
-    userId: values.userId.trim(),
-    firstName: values.firstName.trim(),
-    lastName: values.lastName.trim(),
-    phone,
-    countryCode,
-    email: values.email?.trim() || undefined,
-    cityName: values.cityName?.trim() || undefined,
-    remarks: values.remarks?.trim() || undefined,
-    creditToSalesTeamId: values.creditToSalesTeamId || undefined,
-    studioId: values.studioId || undefined,
-  }
-
-  if (opts.mongoId) {
-    body._id = opts.mongoId
-  }
-
-  const leadIdNum =
-    opts.leadIdNumber ??
-    (values.leadId?.trim() ? Number(values.leadId.trim()) : undefined)
-  if (leadIdNum != null && !Number.isNaN(leadIdNum)) {
-    body.leadId = leadIdNum
-  }
-
-  if (values.rating != null && values.rating !== "") {
-    body.rating = Number(values.rating)
-  }
-
-  if (values.estimatedValue?.trim()) {
-    const n = Number(values.estimatedValue)
-    if (!Number.isNaN(n)) body.estimatedValue = n
-  }
-
-  const leadDate = dateInputToFilter(values.leadDate)
-  if (leadDate) body.leadDate = leadDate
-
-  const followUpDate = dateInputToFilter(values.followUpDate)
-  if (followUpDate) {
-    body.followUpDate = followUpDate
-    body.currentStatusDate = followUpDate
-  }
-
-  const eventDate = dateInputToFilter(values.eventDate)
-  if (eventDate) body.eventDate = eventDate
-
-  const expClosureDate = dateInputToFilter(values.expClosureDate)
-  if (expClosureDate) body.expClosureDate = expClosureDate
-
-  if (values.crossSellRemarks?.trim()) {
-    body.crossSellingDetails = [
-      { remarks: values.crossSellRemarks.trim() },
-    ]
-  }
-
-  if (values.occasion?.trim() || values.budget?.trim()) {
-    const occasionDetails: Record<string, unknown> = {}
-    if (values.occasion?.trim()) {
-      occasionDetails.occasion = values.occasion.trim()
-    }
-    if (values.budget?.trim()) {
-      const budget = Number(values.budget)
-      if (!Number.isNaN(budget)) occasionDetails.budget = budget
-    }
-    body.occasionDetails = [occasionDetails]
-  }
-
-  return body
-}
-
 export function LeadFormClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const leadIdParam = searchParams.get("leadId")
-  const userIdParam = searchParams.get("userId")
+  const leadIdParam = searchParams.get("leadId")?.trim() || ""
+  const userIdParam = searchParams.get("userId")?.trim() || ""
   const isEdit = Boolean(leadIdParam)
 
+  const { data: session } = authClient.useSession()
+  const sessionStylistId = useMemo(() => {
+    const personal = personalStylistIdFromTeamsJson(session?.user?.teamsJson)
+    if (personal) return personal
+    if (!session?.user?.teamsJson) return ""
+    try {
+      const teams = JSON.parse(session.user.teamsJson) as Array<{
+        _id?: string
+      } | null>
+      return teams?.[0]?._id ?? ""
+    } catch {
+      return ""
+    }
+  }, [session?.user?.teamsJson])
+
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [customerLabel, setCustomerLabel] = useState("")
+  const [createCustomerOpen, setCreateCustomerOpen] = useState(false)
+  const [createCustomerPrefill, setCreateCustomerPrefill] = useState<
+    Partial<CreateCustomerFormValues>
+  >({})
+
   const { stylists, loading: stylistsLoading } = useAllStylists(true)
   const { studios, loading: studiosLoading } = useAllStudios()
+
+  const { data: sourcesData, loading: sourcesLoading } =
+    useQuery<GetAllSourceCategoriesData>(GET_ALL_SOURCE_CATEGORIES)
+
+  const { data: personasData, loading: personasLoading } = useQuery<
+    GetUserAttributeMasterData,
+    GetUserAttributeMasterVars
+  >(GET_PERSONAS, {
+    variables: { filter: { masterName: PERSONA_MASTER_NAME } },
+  })
+
+  const { data: brandPartnerData, loading: brandPartnerLoading } = useQuery<
+    GetBrandPartnerSubCategoriesByFilterData,
+    GetBrandPartnerSubCategoriesByFilterVars
+  >(GET_BRAND_PARTNER_SUB_CATEGORIES, {
+    variables: { filter: {} },
+  })
 
   const [fetchLead, { data: leadData, loading: leadLoading, error: leadError }] =
     useLazyQuery<GetSingleLeadData, GetSingleLeadVars>(GET_SINGLE_LEAD, {
       fetchPolicy: "network-only",
     })
+
+  const [fetchUser] = useLazyQuery<GetUserData, GetUserVars>(GET_USER, {
+    fetchPolicy: "network-only",
+  })
 
   const { data: latestIdData, loading: latestIdLoading } =
     useQuery<GetLatestLeadIdData>(GET_LATEST_LEAD_ID, {
@@ -243,9 +305,11 @@ export function LeadFormClient() {
     control,
     handleSubmit,
     reset,
+    setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<LeadFormValues>({
-    resolver: zodResolver(leadFormSchema),
+    resolver: zodResolver(leadFormSchema) as Resolver<LeadFormValues>,
     defaultValues: {
       leadId: "",
       userId: userIdParam || "",
@@ -257,17 +321,121 @@ export function LeadFormClient() {
       remarks: "",
       rating: "",
       creditToSalesTeamId: "",
+      generatedBySalesTeamId: "",
       studioId: "",
-      leadDate: "",
+      sourceCatId: "",
+      sourceSubCatId: "",
+      personaIds: [],
+      leadDate: isEdit ? "" : todayDateInput(),
       followUpDate: "",
       eventDate: "",
       expClosureDate: "",
-      occasion: "",
-      budget: "",
       estimatedValue: "",
-      crossSellRemarks: "",
+      occasions: [],
+      crossSells: [],
     },
   })
+
+  const watchedUserId = useWatch({ control, name: "userId" })
+  const watchedSourceCatId = useWatch({ control, name: "sourceCatId" })
+  const watchedSourceSubCatId = useWatch({ control, name: "sourceSubCatId" })
+  const occasions = useWatch({ control, name: "occasions" }) ?? []
+  const crossSells = useWatch({ control, name: "crossSells" }) ?? []
+
+  const customerLinked = Boolean(watchedUserId?.trim())
+  const bootstrappedUserIdRef = useRef<string | null>(null)
+
+  const sources = useMemo(
+    () =>
+      (sourcesData?.getAllSourceCategories ?? []).filter(
+        (s) => s._id && s.isVisible !== false
+      ),
+    [sourcesData?.getAllSourceCategories]
+  )
+
+  const sourceSubOptions = useMemo(() => {
+    const cat = sources.find((s) => s._id === watchedSourceCatId)
+    return (cat?.subCategory ?? []).filter(
+      (sub) => sub._id && sub.isVisible !== false
+    )
+  }, [sources, watchedSourceCatId])
+
+  const personaOptions = useMemo(
+    () =>
+      (personasData?.getUserAttributeMaster ?? [])
+        .filter((p) => p._id)
+        .map((p) => ({
+          id: p._id,
+          label: p.name?.trim() || p._id,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [personasData?.getUserAttributeMaster]
+  )
+
+  const brandPartnerOptions = useMemo(
+    () =>
+      (brandPartnerData?.getBrandPartnerSubCategoriesByFilter ?? [])
+        .filter((s) => s.subCategoryId)
+        .map((s) => ({
+          id: s.subCategoryId,
+          label: brandPartnerSubCategoryLabel(s),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [brandPartnerData?.getBrandPartnerSubCategoriesByFilter]
+  )
+
+  const brandPartnerLabelById = useMemo(
+    () => new Map(brandPartnerOptions.map((opt) => [opt.id, opt.label])),
+    [brandPartnerOptions]
+  )
+
+  const applyCustomer = useCallback(
+    (user: UserListItem, label?: string) => {
+      setValue("userId", user._id, { shouldValidate: true })
+      setValue("firstName", user.firstName ?? "", { shouldValidate: true })
+      setValue("lastName", user.lastName ?? "", { shouldValidate: true })
+      setValue("phone", toE164Phone(user.countryCode, user.phone), {
+        shouldValidate: true,
+      })
+      setValue("email", user.email ?? "")
+      setCustomerLabel(label ?? customerDisplayLabel(user))
+
+      const currentGeneratedBy = getValues("generatedBySalesTeamId")
+      if (!currentGeneratedBy?.trim() && sessionStylistId) {
+        setValue("generatedBySalesTeamId", sessionStylistId)
+      }
+    },
+    [getValues, sessionStylistId, setValue]
+  )
+
+  useEffect(() => {
+    if (isEdit || !userIdParam) return
+    if (bootstrappedUserIdRef.current === userIdParam) return
+    bootstrappedUserIdRef.current = userIdParam
+
+    void (async () => {
+      try {
+        const result = await fetchUser({ variables: { userId: userIdParam } })
+        const user = result.data?.user
+        if (!user?._id) {
+          setValue("userId", userIdParam, { shouldValidate: true })
+          return
+        }
+        applyCustomer({
+          _id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          fullName: user.fullName,
+          phone: user.phone,
+          countryCode: user.countryCode,
+          email: user.email,
+          customerSrNo: user.customerSrNo,
+        })
+      } catch {
+        setValue("userId", userIdParam, { shouldValidate: true })
+      }
+    })()
+  }, [applyCustomer, fetchUser, isEdit, setValue, userIdParam])
 
   useEffect(() => {
     if (!leadIdParam) return
@@ -282,42 +450,62 @@ export function LeadFormClient() {
       ...prev,
       leadId: String(latest),
       userId: userIdParam || prev.userId,
+      leadDate: prev.leadDate || todayDateInput(),
     }))
   }, [isEdit, latestIdData, reset, userIdParam])
 
   useEffect(() => {
     const lead = leadData?.getSingleLead
     if (!lead || !leadIdParam) return
-
-    reset({
-      leadId: lead.leadId != null ? String(lead.leadId) : "",
-      userId: lead.userId || "",
-      firstName: lead.firstName || "",
-      lastName: lead.lastName || "",
-      phone: toE164Phone(lead.countryCode, lead.phone),
-      email: lead.email || "",
-      cityName: lead.cityName || "",
-      remarks: lead.remarks || "",
-      rating: lead.rating != null ? String(lead.rating) : "",
-      creditToSalesTeamId:
-        lead.creditToSalesTeamId || lead.creditedSalesTeam?.[0]?._id || "",
-      studioId: lead.studioId || lead.studio?.[0]?._id || "",
-      leadDate: timestampToDateInput(lead.leadDate?.timestamp),
-      followUpDate: timestampToDateInput(
-        lead.followUpDate?.timestamp || lead.currentStatusDate?.timestamp
-      ),
-      eventDate: timestampToDateInput(lead.eventDate?.timestamp),
-      expClosureDate: timestampToDateInput(lead.expClosureDate?.timestamp),
-      occasion: lead.occasionDetails?.occasion || "",
-      budget:
-        lead.occasionDetails?.budget != null
-          ? String(lead.occasionDetails.budget)
-          : "",
-      estimatedValue:
-        lead.estimatedValue != null ? String(lead.estimatedValue) : "",
-      crossSellRemarks: lead.crossSellingDetails?.remarks || "",
-    })
+    reset(mapLeadToFormValues(lead))
+    const name = [lead.firstName, lead.lastName].filter(Boolean).join(" ").trim()
+    if (name) setCustomerLabel(name)
   }, [leadData, leadIdParam, reset])
+
+  useEffect(() => {
+    if (!watchedSourceCatId) {
+      if (watchedSourceSubCatId) {
+        setValue("sourceSubCatId", "")
+      }
+      return
+    }
+    if (
+      watchedSourceSubCatId &&
+      !sourceSubOptions.some((sub) => sub._id === watchedSourceSubCatId)
+    ) {
+      setValue("sourceSubCatId", "")
+    }
+  }, [
+    watchedSourceCatId,
+    watchedSourceSubCatId,
+    sourceSubOptions,
+    setValue,
+  ])
+
+  const handleUserCreated = async (userId: string) => {
+    setCreateCustomerOpen(false)
+    setCreateCustomerPrefill({})
+    try {
+      const result = await fetchUser({ variables: { userId } })
+      const user = result.data?.user
+      if (!user?._id) {
+        setValue("userId", userId, { shouldValidate: true })
+        return
+      }
+      applyCustomer({
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName: user.fullName,
+        phone: user.phone,
+        countryCode: user.countryCode,
+        email: user.email,
+        customerSrNo: user.customerSrNo,
+      })
+    } catch {
+      setValue("userId", userId, { shouldValidate: true })
+    }
+  }
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null)
@@ -349,31 +537,36 @@ export function LeadFormClient() {
 
   const busy = saving || isSubmitting
   const loadingExisting = isEdit && leadLoading
+  const formReady = isEdit || customerLinked
+  const showCustomerGate = !isEdit && !customerLinked && !loadingExisting
 
   return (
-    <div className="flex w-full flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <Link
-          href="/leads"
-          className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5 text-sm"
-        >
-          <ArrowLeftIcon className="size-4" />
-          Back to leads
-        </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {isEdit ? "Edit lead" : "Create lead"}
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          {isEdit
-            ? "Update lead contact and follow-up details."
-            : "Create a new lead for an existing customer."}
-        </p>
-      </div>
+    <div className="flex w-full flex-col gap-5 pb-8">
+      <OrderFormHeader
+        title={isEdit ? "Edit lead" : "Create lead"}
+        subtitle={
+          isEdit
+            ? "Update contact, assignment, dates, occasions, and cross-sell details."
+            : showCustomerGate
+              ? "Choose a customer first. We’ll open the lead form next."
+              : customerLabel
+                ? customerLabel
+                : "Set follow-up dates, then add occasion and cross-sell rows."
+        }
+        saving={busy}
+        canSave={formReady && !loadingExisting}
+        onCancelHref="/leads"
+        formId="leads-form"
+        saveLabel={isEdit ? "Save changes" : "Create lead"}
+        backAriaLabel="Back to leads"
+        showActions={!loadingExisting}
+      />
 
       {loadingExisting ? (
         <div className="space-y-3">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
         </div>
       ) : null}
 
@@ -383,23 +576,80 @@ export function LeadFormClient() {
         </p>
       ) : null}
 
-      {!loadingExisting ? (
-        <form onSubmit={onSubmit} className="flex w-full flex-col gap-4">
+      {showCustomerGate ? (
+        <div className="mx-auto w-full max-w-xl">
+          <section className={sectionClass}>
+            <SectionTitle
+              title="Choose a customer"
+              description="Type a name, phone, or email to find an existing client. We’ll open the lead form next."
+            />
+            <div className="flex flex-col gap-4 py-1 sm:py-2">
+              <div className="bg-muted/40 flex items-start gap-3 rounded-lg border px-3 py-3">
+                <div className="bg-background flex size-10 shrink-0 items-center justify-center rounded-full border">
+                  <UserRoundSearchIcon className="text-muted-foreground size-5" />
+                </div>
+                <div className="min-w-0 pt-0.5">
+                  <p className="text-sm font-medium">Search customers</p>
+                  <p className="text-muted-foreground text-xs leading-relaxed">
+                    Need at least 2 characters. Or register a new customer below.
+                  </p>
+                </div>
+              </div>
+              <CustomerSearchSelect
+                label=""
+                autoFocus
+                valueLabel={customerLabel}
+                onSelect={(row) => applyCustomer(row)}
+                onCreateNew={(searchQuery) => {
+                  setCreateCustomerPrefill(
+                    guessCreateCustomerPrefill(searchQuery)
+                  )
+                  setCreateCustomerOpen(true)
+                }}
+              />
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {!loadingExisting && formReady ? (
+        <form
+          id="leads-form"
+          onSubmit={onSubmit}
+          className="flex w-full flex-col gap-4"
+        >
           {submitError ? (
             <p className="text-destructive text-sm" role="alert">
               {submitError}
             </p>
           ) : null}
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-            {/* Left: Customer & notes */}
-            <div className="flex flex-col gap-4 lg:col-span-7">
+          {!isEdit ? (
+            <section className={sectionClass}>
+              <SectionTitle
+                title="1. Customer"
+                description="Customer is locked for this lead. Start a new lead to pick someone else."
+              />
+              <div className="bg-muted/30 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {customerLabel || "Selected customer"}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    User {watchedUserId || "—"}
+                  </p>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          <div className="flex w-full flex-col gap-4">
               <section className={sectionClass}>
                 <SectionTitle
-                  title="Identity"
-                  description="Lead serial, customer link, and contact details."
+                  title={isEdit ? "Contact" : "2. Contact"}
+                  description="Lead serial and customer contact details."
                 />
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <Field id="leadId" label="Lead ID">
                     <Input
                       id="leadId"
@@ -417,11 +667,13 @@ export function LeadFormClient() {
                     id="userId"
                     label="User ID"
                     error={errors.userId?.message}
+                    required
                   >
                     <Input
                       id="userId"
-                      readOnly={Boolean(userIdParam) || isEdit}
-                      disabled={Boolean(userIdParam) || isEdit || busy}
+                      readOnly
+                      className="bg-muted/40"
+                      disabled={busy}
                       {...register("userId")}
                     />
                   </Field>
@@ -429,6 +681,7 @@ export function LeadFormClient() {
                     id="firstName"
                     label="First name"
                     error={errors.firstName?.message}
+                    required
                   >
                     <Input
                       id="firstName"
@@ -440,6 +693,7 @@ export function LeadFormClient() {
                     id="lastName"
                     label="Last name"
                     error={errors.lastName?.message}
+                    required
                   >
                     <Input
                       id="lastName"
@@ -451,7 +705,8 @@ export function LeadFormClient() {
                     id="phone"
                     label="Phone"
                     error={errors.phone?.message}
-                    className="space-y-1.5 sm:col-span-2"
+                    required
+                    className="space-y-1.5 sm:col-span-2 lg:col-span-1"
                   >
                     <Controller
                       name="phone"
@@ -489,65 +744,90 @@ export function LeadFormClient() {
                       {...register("cityName")}
                     />
                   </Field>
-                </div>
-              </section>
-
-              <section className={sectionClass}>
-                <SectionTitle
-                  title="Notes & occasion"
-                  description="Remarks, cross-sell notes, and occasion budget."
-                />
-                <Field id="remarks" label="Remarks">
-                  <Textarea
+                  <Field
                     id="remarks"
-                    rows={3}
-                    disabled={busy}
-                    {...register("remarks")}
-                  />
-                </Field>
-                <Field id="crossSellRemarks" label="Cross-sell remarks">
-                  <Textarea
-                    id="crossSellRemarks"
-                    rows={2}
-                    disabled={busy}
-                    {...register("crossSellRemarks")}
-                  />
-                </Field>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field id="occasion" label="Occasion">
-                    <Input
-                      id="occasion"
+                    label="Remarks"
+                    className="space-y-1.5 sm:col-span-2 lg:col-span-3"
+                  >
+                    <Textarea
+                      id="remarks"
+                      rows={3}
                       disabled={busy}
-                      {...register("occasion")}
-                    />
-                  </Field>
-                  <Field id="budget" label="Budget">
-                    <Input
-                      id="budget"
-                      type="number"
-                      disabled={busy}
-                      {...register("budget")}
+                      {...register("remarks")}
                     />
                   </Field>
                 </div>
               </section>
-            </div>
 
-            {/* Right: Assignment & dates */}
-            <div className="flex flex-col gap-4 lg:col-span-5">
               <section className={sectionClass}>
                 <SectionTitle
-                  title="Assignment & rating"
-                  description="Credit, studio, rating, and estimated value."
+                  title={isEdit ? "Source & assignment" : "3. Source & assignment"}
+                  description="Acquisition source, team, studio, and value."
                 />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <Field id="sourceCatId" label="Source category">
                     <Controller
                       control={control}
-                      name="creditToSalesTeamId"
+                      name="sourceCatId"
+                      render={({ field }) => (
+                        <select
+                          id="sourceCatId"
+                          className={selectClass}
+                          value={field.value || ""}
+                          disabled={busy || sourcesLoading}
+                          onChange={(e) => {
+                            field.onChange(e.target.value)
+                            setValue("sourceSubCatId", "")
+                          }}
+                        >
+                          <option value="">Select source</option>
+                          {sources.map((source) => (
+                            <option key={source._id} value={source._id}>
+                              {source.name || source._id}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    />
+                  </Field>
+                  <Field id="sourceSubCatId" label="Source sub-category">
+                    <Controller
+                      control={control}
+                      name="sourceSubCatId"
+                      render={({ field }) => (
+                        <select
+                          id="sourceSubCatId"
+                          className={selectClass}
+                          value={field.value || ""}
+                          onChange={field.onChange}
+                          disabled={
+                            busy ||
+                            sourcesLoading ||
+                            !watchedSourceCatId ||
+                            sourceSubOptions.length === 0
+                          }
+                        >
+                          <option value="">Select sub-category</option>
+                          {sourceSubOptions.map((sub) => (
+                            <option key={sub._id} value={sub._id!}>
+                              {sub.name || sub._id}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    />
+                  </Field>
+                  <Field
+                    id="generatedBySalesTeamId"
+                    label="Generated by"
+                    className="space-y-1.5 sm:col-span-2 lg:col-span-1"
+                  >
+                    <Controller
+                      control={control}
+                      name="generatedBySalesTeamId"
                       render={({ field }) => (
                         <StylistSearchSelect
-                          label="Credit to"
+                          id="generatedBySalesTeamId"
                           stylists={stylists}
                           value={field.value || ""}
                           onChange={field.onChange}
@@ -556,8 +836,54 @@ export function LeadFormClient() {
                         />
                       )}
                     />
-                  </div>
-                  <Field id="studioId" label="Studio" className="space-y-1.5 sm:col-span-2">
+                  </Field>
+                  <Field
+                    id="creditToSalesTeamId"
+                    label="Credit to"
+                    className="space-y-1.5 sm:col-span-2 lg:col-span-1"
+                  >
+                    <Controller
+                      control={control}
+                      name="creditToSalesTeamId"
+                      render={({ field }) => (
+                        <StylistSearchSelect
+                          id="creditToSalesTeamId"
+                          stylists={stylists}
+                          value={field.value || ""}
+                          onChange={field.onChange}
+                          loading={stylistsLoading}
+                          disabled={busy}
+                        />
+                      )}
+                    />
+                  </Field>
+                  <Field
+                    id="personaIds"
+                    label="Personas"
+                    className="space-y-1.5 sm:col-span-2 lg:col-span-1"
+                  >
+                    <Controller
+                      control={control}
+                      name="personaIds"
+                      render={({ field }) => (
+                        <PersonaMultiSelect
+                          id="personaIds"
+                          label=""
+                          options={personaOptions}
+                          value={field.value ?? []}
+                          onChange={field.onChange}
+                          loading={personasLoading}
+                          disabled={busy}
+                        />
+                      )}
+                    />
+                  </Field>
+                  <Field
+                    id="studioId"
+                    label="Studio"
+                    required
+                    error={errors.studioId?.message}
+                  >
                     <Controller
                       control={control}
                       name="studioId"
@@ -601,12 +927,37 @@ export function LeadFormClient() {
                       )}
                     />
                   </Field>
-                  <Field id="estimatedValue" label="Estimated value">
-                    <Input
-                      id="estimatedValue"
-                      type="number"
-                      disabled={busy}
-                      {...register("estimatedValue")}
+                  <Field
+                    id="estimatedValue"
+                    label="Estimated value"
+                    required
+                    error={errors.estimatedValue?.message}
+                  >
+                    <Controller
+                      control={control}
+                      name="estimatedValue"
+                      render={({ field }) => (
+                        <select
+                          id="estimatedValue"
+                          className={selectClass}
+                          value={field.value || ""}
+                          onChange={field.onChange}
+                          disabled={busy}
+                        >
+                          <option value="">Select estimated value</option>
+                          {LEAD_ESTIMATED_VALUE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                          {field.value &&
+                          !LEAD_ESTIMATED_VALUE_OPTIONS.some(
+                            (opt) => opt.value === field.value
+                          ) ? (
+                            <option value={field.value}>{field.value}</option>
+                          ) : null}
+                        </select>
+                      )}
                     />
                   </Field>
                 </div>
@@ -614,11 +965,16 @@ export function LeadFormClient() {
 
               <section className={sectionClass}>
                 <SectionTitle
-                  title="Dates"
-                  description="Lead, follow-up, event, and expected closure."
+                  title={isEdit ? "Dates" : "4. Dates"}
+                  description="Follow-up must be before expected closure."
                 />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field id="leadDate" label="Lead date">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <Field
+                    id="leadDate"
+                    label="Lead date"
+                    required
+                    error={errors.leadDate?.message}
+                  >
                     <Input
                       id="leadDate"
                       type="date"
@@ -626,7 +982,12 @@ export function LeadFormClient() {
                       {...register("leadDate")}
                     />
                   </Field>
-                  <Field id="followUpDate" label="Follow-up date">
+                  <Field
+                    id="followUpDate"
+                    label="Follow-up date"
+                    required
+                    error={errors.followUpDate?.message}
+                  >
                     <Input
                       id="followUpDate"
                       type="date"
@@ -642,7 +1003,12 @@ export function LeadFormClient() {
                       {...register("eventDate")}
                     />
                   </Field>
-                  <Field id="expClosureDate" label="Expected closure">
+                  <Field
+                    id="expClosureDate"
+                    label="Expected closure"
+                    required
+                    error={errors.expClosureDate?.message}
+                  >
                     <Input
                       id="expClosureDate"
                       type="date"
@@ -652,10 +1018,33 @@ export function LeadFormClient() {
                   </Field>
                 </div>
               </section>
-            </div>
           </div>
 
-          <div className="bg-background/80 sticky bottom-0 z-10 flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+          <div className="flex flex-col gap-4">
+            <p className="text-muted-foreground px-0.5 text-xs font-medium tracking-wide uppercase">
+              {isEdit ? "Details grids" : "5. Occasion & cross selling"}
+            </p>
+            <LeadOccasionSection
+              rows={occasions}
+              userId={watchedUserId}
+              disabled={busy}
+              onChange={(next) =>
+                setValue("occasions", next, { shouldDirty: true })
+              }
+            />
+            <LeadCrossSellSection
+              rows={crossSells}
+              options={brandPartnerOptions}
+              optionsLoading={brandPartnerLoading}
+              labelById={brandPartnerLabelById}
+              disabled={busy}
+              onChange={(next) =>
+                setValue("crossSells", next, { shouldDirty: true })
+              }
+            />
+          </div>
+
+          <div className="bg-background/90 sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center justify-end gap-2 border-t px-1 py-3 backdrop-blur-sm">
             <Button
               type="button"
               variant="outline"
@@ -670,6 +1059,19 @@ export function LeadFormClient() {
           </div>
         </form>
       ) : null}
+
+      <RegisterUserSheet
+        endpoint="lead"
+        open={createCustomerOpen}
+        onOpenChange={(next) => {
+          setCreateCustomerOpen(next)
+          if (!next) setCreateCustomerPrefill({})
+        }}
+        initialValues={createCustomerPrefill}
+        onCreated={(userId) => {
+          void handleUserCreated(userId)
+        }}
+      />
     </div>
   )
 }
