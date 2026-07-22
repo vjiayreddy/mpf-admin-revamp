@@ -1,5 +1,6 @@
 import { createAuthClient } from "better-auth/react"
 import { inferAdditionalFields } from "better-auth/client/plugins"
+import { twoFactorClient } from "better-auth/client/plugins"
 import { credentialsClient } from "better-auth-credentials-plugin/client"
 
 import type { auth } from "@/lib/auth"
@@ -13,5 +14,12 @@ export const authClient = createAuthClient({
       typeof mpfLoginInputSchema
     >(),
     inferAdditionalFields<typeof auth>(),
+    twoFactorClient({
+      onTwoFactorRedirect() {
+        if (typeof window !== "undefined") {
+          window.location.href = "/two-factor"
+        }
+      },
+    }),
   ],
 })

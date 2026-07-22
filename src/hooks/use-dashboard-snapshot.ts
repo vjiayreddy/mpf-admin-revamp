@@ -84,8 +84,9 @@ function sumItemValues(items: AnalyticsItem[]): number | null {
 }
 
 function formatWeekRangeLabel(start: Date, end: Date) {
+  // Fixed locale so SSR and client always match (avoids hydration mismatch).
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }
-  return `${start.toLocaleDateString(undefined, opts)} – ${end.toLocaleDateString(undefined, opts)}`
+  return `${start.toLocaleDateString("en-GB", opts)} – ${end.toLocaleDateString("en-GB", opts)}`
 }
 
 export function useDashboardSnapshot() {

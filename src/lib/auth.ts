@@ -3,10 +3,12 @@ import type { User } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { nextCookies } from "better-auth/next-js"
 import { APIError } from "better-auth/api"
+import { twoFactor } from "better-auth/plugins"
 import { credentials } from "better-auth-credentials-plugin"
 
 import { authDb } from "@/lib/auth-db"
 import * as schema from "@/lib/auth-schema"
+import { patchTwoFactorCredentialsMatcher } from "@/lib/auth/with-credentials-two-factor"
 import {
   authenticateWithMpfGraphQL,
   mpfLoginInputSchema,
@@ -16,6 +18,7 @@ import {
 type MpfSessionUser = User & MpfAuthUser
 
 export const auth = betterAuth({
+  appName: "My Perfect Fit Admin",
   database: drizzleAdapter(authDb, {
     provider: "sqlite",
     schema,
@@ -60,6 +63,13 @@ export const auth = betterAuth({
         }
       },
     }),
+    patchTwoFactorCredentialsMatcher(
+      twoFactor({
+        issuer: "My Perfect Fit Admin",
+        // Passwords live in MPF GraphQL, not Better Auth credential accounts.
+        allowPasswordless: true,
+      })
+    ),
     nextCookies(),
   ],
 })

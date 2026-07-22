@@ -6,7 +6,9 @@ export async function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request)
 
   const isAuthRoute =
-    pathname.startsWith("/login") || pathname.startsWith("/api/auth")
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/two-factor") ||
+    pathname.startsWith("/api/auth")
   const isPublicShared =
     pathname.startsWith("/shared/trail-details") ||
     pathname.startsWith("/shared/order-details")
@@ -16,6 +18,10 @@ export async function proxy(request: NextRequest) {
   }
 
   if (sessionCookie && pathname.startsWith("/login")) {
+    return NextResponse.redirect(new URL("/", request.url))
+  }
+
+  if (sessionCookie && pathname.startsWith("/two-factor")) {
     return NextResponse.redirect(new URL("/", request.url))
   }
 

@@ -106,6 +106,11 @@ export function SiteHeader({ userName, userEmail, userImage }: SiteHeaderProps) 
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={() => router.push("/account/security")}
+              >
+                Security
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSignOut}>
                 Sign out
               </DropdownMenuItem>

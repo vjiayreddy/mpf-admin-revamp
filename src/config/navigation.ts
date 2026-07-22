@@ -164,6 +164,8 @@ export const navigation: NavItem[] = [
 ]
 
 export function getPageTitle(pathname: string): string {
+  if (pathname.startsWith("/account/security")) return "Security"
+
   for (const item of navigation) {
     if (item.href === pathname) return item.title
     if (item.children) {
