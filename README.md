@@ -31,6 +31,19 @@ Better Auth bridges to the MPF GraphQL `login` query (same pattern as legacy nex
 3. Sign in at `/login` with admin email + password (+ display name)
 4. Session cookie is Better Auth; GraphQL calls use `Authorization: Bearer <mpfAccessToken>`
 
+## PostHog (analytics + error tracking + session replay)
+
+Uses the same `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST` as product analytics.
+
+1. In PostHog → **Error tracking**, enable exception autocapture
+2. In PostHog → **Session replay**, ensure recording is allowed for the project
+3. Client errors: autocapture + `src/app/error.tsx` / `global-error.tsx`
+4. Server errors: `instrumentation.ts` → `onRequestError`
+5. Session replay is **on** (`sampleRate: 1`, inputs masked, **network headers/bodies captured with redaction**). Kill switch: `NEXT_PUBLIC_POSTHOG_SESSION_REPLAY=false`. Lower `sampleRate` later if UI feels heavy.
+6. View issues: PostHog → **Error tracking**; recordings: PostHog → **Session replay** → open a recording → **Network** tab (API URL, status, redacted payload)
+7. **Localhost limitation:** PostHog does **not** capture network request bodies on `localhost`. Deploy or use a non-localhost host to verify API/payload capture. Also enable network capture in PostHog → Project settings → Session replay.
+8. **Connection quality** (when the browser supports `navigator.connection`): each event gets super-properties `connection_effective_type`, `connection_type`, `connection_downlink_mbps`, `connection_rtt_ms`, `connection_save_data`. Check any event in **Activity** → properties.
+
 ## Notes
 
 Legacy reference app: `../myperfectfit-admin-ui-main`
