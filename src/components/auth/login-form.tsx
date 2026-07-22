@@ -49,6 +49,16 @@ export function LoginForm() {
         return
       }
 
+      // 2FA challenge: client plugin redirects to /two-factor
+      if (
+        result.data &&
+        typeof result.data === "object" &&
+        "twoFactorRedirect" in result.data &&
+        result.data.twoFactorRedirect
+      ) {
+        return
+      }
+
       const session = await authClient.getSession()
       const user = session.data?.user
       const sessionId = user?.activeStylistSessionId

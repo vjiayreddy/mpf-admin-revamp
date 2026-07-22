@@ -26,6 +26,8 @@ export const user = sqliteTable("user", {
   permissionsJson: text("permissions_json"),
   teamsJson: text("teams_json"),
   activeStylistSessionId: text("active_stylist_session_id"),
+  twoFactorEnabled: integer("two_factor_enabled", { mode: "boolean" })
+    .default(false),
 })
 
 export const session = sqliteTable("session", {
@@ -83,4 +85,16 @@ export const verification = sqliteTable("verification", {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
+})
+
+export const twoFactor = sqliteTable("two_factor", {
+  id: text("id").primaryKey(),
+  secret: text("secret").notNull(),
+  backupCodes: text("backup_codes").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  verified: integer("verified", { mode: "boolean" }).default(true),
+  failedVerificationCount: integer("failed_verification_count").default(0),
+  lockedUntil: integer("locked_until", { mode: "timestamp_ms" }),
 })

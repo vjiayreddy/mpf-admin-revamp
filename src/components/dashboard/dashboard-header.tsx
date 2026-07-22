@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowUpRightIcon, PlusIcon } from "lucide-react"
 
@@ -25,20 +26,34 @@ function firstName(name?: string | null, email?: string | null) {
   return fromEmail || "there"
 }
 
+function formatLocalDateLabel(date: Date) {
+  return date.toLocaleDateString("en-GB", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  })
+}
+
 export function DashboardHeader({
   name,
   role,
   email,
   weekRangeLabel,
 }: DashboardHeaderProps) {
-  const now = new Date()
-  const greeting = greetingForHour(now.getHours())
   const displayName = firstName(name, email)
-  const dateLabel = now.toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  })
+  // Clock-based copy is client-only to avoid SSR/client timezone mismatches.
+  const [localNow, setLocalNow] = useState<{
+    greeting: string
+    dateLabel: string
+  } | null>(null)
+
+  useEffect(() => {
+    const now = new Date()
+    setLocalNow({
+      greeting: greetingForHour(now.getHours()),
+      dateLabel: formatLocalDateLabel(now),
+    })
+  }, [])
 
   return (
     <section className="relative overflow-hidden rounded-2xl border">
@@ -69,10 +84,10 @@ export function DashboardHeader({
             Ops home · {weekRangeLabel}
           </p>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            {greeting}, {displayName}
+            {localNow ? `${localNow.greeting}, ${displayName}` : `Hello, ${displayName}`}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {dateLabel}
+            {localNow?.dateLabel ?? "\u00a0"}
             {role ? ` · ${role}` : ""}
           </p>
         </div>
