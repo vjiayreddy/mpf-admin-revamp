@@ -40,3 +40,19 @@ export async function captureServerEvent(input: {
     await client.shutdown()
   }
 }
+
+/** Report a server exception to PostHog Error Tracking. */
+export async function captureServerException(
+  error: unknown,
+  distinctId?: string,
+  properties?: Record<string, unknown>
+) {
+  const client = createPostHogServerClient()
+  if (!client) return
+
+  try {
+    client.captureException(error, distinctId, properties)
+  } finally {
+    await client.shutdown()
+  }
+}
