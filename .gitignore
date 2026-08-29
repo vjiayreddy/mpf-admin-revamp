@@ -37,7 +37,8 @@ yarn-error.log*
 # local Better Auth / sqlite
 *.db
 *.db-*
-/data/
+/data/*
+!/data/.gitkeep
 /drizzle/meta/
 
 # vercel
