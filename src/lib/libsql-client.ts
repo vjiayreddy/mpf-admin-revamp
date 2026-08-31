@@ -1,16 +1,22 @@
 import { createClient, type Client } from "@libsql/client"
 
+import { resolveLocalSqliteUrl } from "@/lib/sqlite-url"
+
 type LibsqlClientOptions = {
   urlEnv: string
   tokenEnv: string
 }
 
-export function createLibsqlClient({ urlEnv, tokenEnv }: LibsqlClientOptions): Client {
+function resolveDbUrl(urlEnv: string): string {
   const url = process.env[urlEnv]
   if (!url) {
     throw new Error(`${urlEnv} is not set`)
   }
+  return resolveLocalSqliteUrl(url)
+}
 
+export function createLibsqlClient({ urlEnv, tokenEnv }: LibsqlClientOptions): Client {
+  const url = resolveDbUrl(urlEnv)
   const authToken = process.env[tokenEnv]
   const isRemote = url.startsWith("libsql://") || url.startsWith("https://")
   if (isRemote && !authToken) {
@@ -24,11 +30,7 @@ export function createLibsqlClient({ urlEnv, tokenEnv }: LibsqlClientOptions): C
 }
 
 export function libsqlCredentials(urlEnv: string, tokenEnv: string) {
-  const url = process.env[urlEnv]
-  if (!url) {
-    throw new Error(`${urlEnv} is not set`)
-  }
-
+  const url = resolveDbUrl(urlEnv)
   const authToken = process.env[tokenEnv]
   const isRemote = url.startsWith("libsql://") || url.startsWith("https://")
   if (isRemote && !authToken) {
@@ -42,11 +44,7 @@ export function libsqlCredentials(urlEnv: string, tokenEnv: string) {
 }
 
 export function drizzleLibsqlConfig(urlEnv: string, tokenEnv: string) {
-  const url = process.env[urlEnv]
-  if (!url) {
-    throw new Error(`${urlEnv} is not set`)
-  }
-
+  const url = resolveDbUrl(urlEnv)
   const isRemote = url.startsWith("libsql://") || url.startsWith("https://")
   if (isRemote) {
     return {

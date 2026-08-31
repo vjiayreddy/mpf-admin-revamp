@@ -34,7 +34,7 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local Better Auth / sqlite
+# local sqlite (optional file: fallback); Turso is the primary DB
 *.db
 *.db-*
 /data/
