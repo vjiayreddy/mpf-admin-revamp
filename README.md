@@ -27,9 +27,10 @@ Open [http://localhost:3000](http://localhost:3000).
 Better Auth bridges to the MPF GraphQL `login` query (same pattern as legacy next-auth Credentials).
 
 1. Copy `.env.example` → `.env.local` and set secrets / API URLs
-2. Run `npm run db:push` (creates `data/` if needed; libsql SQLite for Better Auth user/session tables)
-3. Sign in at `/login` with admin email + password (+ display name)
-4. Session cookie is Better Auth; GraphQL calls use `Authorization: Bearer <mpfAccessToken>`
+2. Create one Turso database per environment at [app.turso.tech](https://app.turso.tech/) and set `TURSO_DATABASE_URL` + `TURSO_DATABASE_TOKEN` in `.env.local`
+3. Push all schemas into that DB: `npm run db:push` (also `db:push:prefs` / `db:push:health` — same shared schema set)
+4. Sign in at `/login` with admin email + password (+ display name)
+5. Session cookie is Better Auth; GraphQL calls use `Authorization: Bearer <mpfAccessToken>`
 
 ## PostHog (analytics + error tracking + session replay)
 
@@ -58,7 +59,7 @@ Before a deploy, open **System → Maintenance** (`/system/maintenance`):
 
 The control page (`/system/maintenance`) stays usable while the lock is active so ops can end maintenance. All other routes show the full-screen lock.
 
-State is stored in `prefs.db` (`maintenance_status` table). Run `npm run db:push:prefs` after pull if the table is missing.
+State is stored in Turso (`maintenance_status` table). Run `npm run db:push` after schema changes if the table is missing.
 
 Realtime (optional): set `ABLY_API_KEY` (server publish) and `NEXT_PUBLIC_ABLY_KEY` (client subscribe). Without Ably keys, clients poll every 20s.
 

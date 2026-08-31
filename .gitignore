@@ -34,11 +34,10 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local Better Auth / sqlite (seeded DBs under data/ are tracked)
+# local sqlite (optional file: fallback); Turso is the primary DB
 *.db
 *.db-*
-!/data/*.db
-!/data/*.db-*
+/data/
 /drizzle/meta/
 
 # vercel

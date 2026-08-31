@@ -1,14 +1,19 @@
 import { defineConfig } from "drizzle-kit"
 
-import { resolveLocalSqliteUrl } from "./src/lib/sqlite-url"
+import { drizzleLibsqlConfig } from "./src/lib/libsql-client"
+
+const { dialect, dbCredentials } = drizzleLibsqlConfig(
+  "TURSO_DATABASE_URL",
+  "TURSO_DATABASE_TOKEN",
+)
 
 export default defineConfig({
-  schema: "./src/lib/auth-schema.ts",
+  schema: [
+    "./src/lib/auth-schema.ts",
+    "./src/lib/prefs/prefs-schema.ts",
+    "./src/lib/health/health-schema.ts",
+  ],
   out: "./drizzle",
-  dialect: "sqlite",
-  dbCredentials: {
-    url: resolveLocalSqliteUrl(
-      process.env.AUTH_DATABASE_URL ?? "file:data/auth.db",
-    ),
-  },
+  dialect,
+  dbCredentials,
 })

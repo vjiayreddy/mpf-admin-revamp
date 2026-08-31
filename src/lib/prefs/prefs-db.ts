@@ -1,13 +1,11 @@
-import { createClient } from "@libsql/client"
 import { drizzle } from "drizzle-orm/libsql"
 
+import { createLibsqlClient } from "@/lib/libsql-client"
 import * as schema from "@/lib/prefs/prefs-schema"
-import { resolveLocalSqliteUrl } from "@/lib/sqlite-url"
 
-const client = createClient({
-  url: resolveLocalSqliteUrl(
-    process.env.PREFS_DATABASE_URL ?? "file:data/prefs.db",
-  ),
+const client = createLibsqlClient({
+  urlEnv: "TURSO_DATABASE_URL",
+  tokenEnv: "TURSO_DATABASE_TOKEN",
 })
 
 export const prefsDb = drizzle(client, { schema })

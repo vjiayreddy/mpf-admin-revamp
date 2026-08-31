@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSessionCookie } from "better-auth/cookies"
+
+/** Lightweight session presence check — avoids bundling better-auth into proxy. */
+function hasSessionCookie(request: NextRequest): boolean {
+  const names = [
+    "better-auth.session_token",
+    "__Secure-better-auth.session_token",
+    "better-auth-session_token",
+    "__Secure-better-auth-session_token",
+  ]
+  return names.some((name) => Boolean(request.cookies.get(name)?.value))
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const sessionCookie = getSessionCookie(request)
 
   const isAuthRoute =
     pathname.startsWith("/login") ||
@@ -13,16 +22,10 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/shared/trail-details") ||
     pathname.startsWith("/shared/order-details")
 
-  if (!sessionCookie && !isAuthRoute && !isPublicShared) {
+  // Only gate protected routes. Do NOT bounce /login → / on cookie presence alone —
+  // a stale cookie + dashboard getSession() null causes an infinite 307 loop.
+  if (!isAuthRoute && !isPublicShared && !hasSessionCookie(request)) {
     return NextResponse.redirect(new URL("/login", request.url))
-  }
-
-  if (sessionCookie && pathname.startsWith("/login")) {
-    return NextResponse.redirect(new URL("/", request.url))
-  }
-
-  if (sessionCookie && pathname.startsWith("/two-factor")) {
-    return NextResponse.redirect(new URL("/", request.url))
   }
 
   return NextResponse.next()

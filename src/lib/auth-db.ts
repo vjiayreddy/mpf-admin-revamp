@@ -1,12 +1,11 @@
-import { createClient } from "@libsql/client"
 import { drizzle } from "drizzle-orm/libsql"
-import * as schema from "@/lib/auth-schema"
-import { resolveLocalSqliteUrl } from "@/lib/sqlite-url"
 
-const client = createClient({
-  url: resolveLocalSqliteUrl(
-    process.env.AUTH_DATABASE_URL ?? "file:data/auth.db",
-  ),
+import { createLibsqlClient } from "@/lib/libsql-client"
+import * as schema from "@/lib/auth-schema"
+
+const client = createLibsqlClient({
+  urlEnv: "TURSO_DATABASE_URL",
+  tokenEnv: "TURSO_DATABASE_TOKEN",
 })
 
 export const authDb = drizzle(client, { schema })

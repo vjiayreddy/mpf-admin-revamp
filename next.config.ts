@@ -1,10 +1,14 @@
 import path from "node:path"
 import type { NextConfig } from "next"
 
+const appRoot = path.join(__dirname)
+
 const nextConfig: NextConfig = {
-  // Parent folder also has a package-lock.json; pin Turbopack to this app.
+  // Parent folder `uidevs/` has its own `.git` + sibling apps. Without this,
+  // Next treats the parent as the workspace root and first compile hangs forever.
+  outputFileTracingRoot: appRoot,
   turbopack: {
-    root: path.join(__dirname),
+    root: appRoot,
   },
 }
 
