@@ -1,4 +1,4 @@
-import posthog from "posthog-js"
+import { posthog } from "posthog-js"
 
 import { isPostHogEnabled } from "@/lib/posthog/config"
 
