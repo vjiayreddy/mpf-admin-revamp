@@ -34,10 +34,11 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local Better Auth / sqlite
+# local Better Auth / sqlite (seeded DBs under data/ are tracked)
 *.db
 *.db-*
-/data/
+!/data/*.db
+!/data/*.db-*
 /drizzle/meta/
 
 # vercel

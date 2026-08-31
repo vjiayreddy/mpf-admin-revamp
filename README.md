@@ -27,7 +27,7 @@ Open [http://localhost:3000](http://localhost:3000).
 Better Auth bridges to the MPF GraphQL `login` query (same pattern as legacy next-auth Credentials).
 
 1. Copy `.env.example` → `.env.local` and set secrets / API URLs
-2. Ensure `data/` exists and run `npm run db:push` (libsql SQLite for Better Auth user/session tables)
+2. Run `npm run db:push` (creates `data/` if needed; libsql SQLite for Better Auth user/session tables)
 3. Sign in at `/login` with admin email + password (+ display name)
 4. Session cookie is Better Auth; GraphQL calls use `Authorization: Bearer <mpfAccessToken>`
 
